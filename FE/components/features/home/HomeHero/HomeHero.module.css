@@ -1,0 +1,42 @@
+.hero {
+  padding: clamp(1.5rem, 5vw, 4rem);
+  border: 1px solid var(--border);
+  border-radius: var(--space-4);
+  background: var(--mint);
+}
+
+.intro { max-width: 42rem; }
+
+.eyebrow {
+  margin-bottom: var(--space-4);
+  color: var(--teal);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.intro h1 {
+  color: var(--navy);
+  font-size: clamp(2rem, 4.5vw, 3.75rem);
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+
+.description {
+  max-width: 36rem;
+  margin-top: var(--space-6);
+  color: var(--muted);
+  font-size: clamp(1rem, 2vw, 1.125rem);
+  line-height: 1.7;
+}
+
+.reassurance {
+  margin-top: var(--space-4);
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+@media (max-width: 480px) {
+  .hero { padding-inline: var(--space-4); }
+}
