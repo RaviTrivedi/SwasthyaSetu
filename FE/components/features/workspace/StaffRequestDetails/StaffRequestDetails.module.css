@@ -1,0 +1,7 @@
+.details { padding: var(--space-6); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow-wrap: anywhere; }
+.details h2, .details p { margin-block: var(--space-4); }
+.details dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6); }
+.details dt { color: var(--muted); font-size: 0.875rem; }
+.details dd { margin-top: var(--space-2); }
+.details button { min-height: 44px; padding: var(--space-3); border: 1px solid var(--control-border); border-radius: var(--radius); background: var(--surface); color: var(--teal); font: inherit; cursor: pointer; }
+@media (max-width: 600px) { .details dl { grid-template-columns: 1fr; } }

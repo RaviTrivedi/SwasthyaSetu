@@ -1,12 +1,12 @@
-"use client";
+﻿
 
-import { useState } from "react";
+import Link from "next/link";
 import ProviderCard from "@/components/features/providers/ProviderCard";
 import { facilities } from "./facilities";
 import styles from "./NearbyFacilities.module.css";
 
 export default function NearbyFacilities() {
-  const [message, setMessage] = useState("");
+
 
   return (
     <section className={styles.section} aria-labelledby="nearby-facilities-title">
@@ -15,14 +15,13 @@ export default function NearbyFacilities() {
           <p className={styles.location}>Near Ahmedabad</p>
           <h2 id="nearby-facilities-title">Nearby clinics and hospitals</h2>
         </div>
-        <button
-          type="button"
+        <Link
           className={styles.viewAll}
           aria-label="View all nearby clinics and hospitals"
-          onClick={() => setMessage("Browsing all facilities is coming soon.")}
+          href="/search?location=Ahmedabad"
         >
           View all <span aria-hidden="true">→</span>
-        </button>
+        </Link>
       </div>
       <p className={styles.note}>Sample facilities and distances for preview only.</p>
       <ul className={styles.grid}>
@@ -30,12 +29,12 @@ export default function NearbyFacilities() {
           <li key={facility.id}>
             <ProviderCard
               facility={facility}
-              onViewDetails={(selected) => setMessage(`Details for ${selected.name} are coming soon.`)}
             />
           </li>
         ))}
       </ul>
-      <p className={styles.status} role="status" aria-atomic="true">{message}</p>
+
     </section>
   );
 }
+

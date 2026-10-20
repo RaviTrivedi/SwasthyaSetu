@@ -1,0 +1,4 @@
+.actions { margin-top: var(--space-4); }
+.actions button { min-height: 44px; padding: var(--space-3); margin: var(--space-2) var(--space-2) 0 0; border: 1px solid var(--teal); border-radius: var(--radius); background: var(--surface); color: var(--teal); font: inherit; cursor: pointer; }
+.actions button:disabled { color: var(--muted); border-color: var(--border); cursor: not-allowed; }
+.confirmation { padding: var(--space-4); margin-top: var(--space-3); background: var(--mint); border-radius: var(--radius); }

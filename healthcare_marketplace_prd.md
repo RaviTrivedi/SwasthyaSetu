@@ -1,4 +1,5 @@
 # Healthcare Discovery & Appointment Booking Platform
+
 ## Product Requirements Document (PRD)
 
 **Status:** Draft for review  
@@ -34,20 +35,25 @@ The platform is a discovery and scheduling tool, not a substitute for medical as
 ## 5. User roles
 
 ### 5.1 Patient
+
 A person looking for care and requesting appointments with a chosen clinic, hospital, or affiliated doctor.
 
 ### 5.2 Doctor
+
 A healthcare professional associated with at least one clinic or hospital. A doctor cannot publish a standalone profile or accept marketplace bookings without an active organization affiliation. Doctors can have affiliations with multiple organizations if permitted by each organization.
 
 ### 5.3 Clinic or hospital staff
+
 Authorized staff who manage an organization workspace. The first release may use one staff role; finer roles such as owner, manager, and receptionist can be defined later. Staff can access only the organization(s) to which they are assigned.
 
 ### 5.4 Platform administrator
+
 Platform operations role that reviews organization onboarding, manages marketplace categories and accounts, handles reports/support, and views operational metrics. Admin access to patient clinical information should be restricted and audited.
 
 ## 6. Product surfaces
 
 ### Web (first release)
+
 - Public discovery and provider detail pages.
 - Patient account and booking management.
 - Clinic/hospital workspace for organization setup and operations.
@@ -55,6 +61,7 @@ Platform operations role that reviews organization onboarding, manages marketpla
 - Platform administration workspace.
 
 ### Mobile (subsequent release)
+
 - Expo app focused on patient discovery, booking, appointment management, and notifications.
 - Uses the same API, identity, booking rules, and data as the web application.
 - Clinic management remains supported on the web in the initial mobile release unless later prioritized.
@@ -75,6 +82,7 @@ Platform operations role that reviews organization onboarding, manages marketpla
 ## 8. Functional requirements
 
 ### 8.1 Discovery and search
+
 - Display nearby hospitals and clinics, ordered by proximity when a location is available.
 - Allow a patient to enter a location if they do not grant device location permission.
 - Support browsing hospitals and their departments/services.
@@ -84,6 +92,7 @@ Platform operations role that reviews organization onboarding, manages marketpla
 - Do not imply a medical diagnosis from symptoms or body-area browsing.
 
 ### 8.2 Organization onboarding and profiles
+
 - Clinic/hospital staff can submit an organization for platform review.
 - Organization profile includes name, type, locations, address, contact details, operating hours, services/specialties, and relevant public description.
 - Platform admin can approve, reject, request changes, or suspend an organization.
@@ -91,12 +100,14 @@ Platform operations role that reviews organization onboarding, manages marketpla
 - Organization workspace data is isolated from other organizations.
 
 ### 8.3 Doctor affiliation and profile
+
 - A doctor profile must be linked to at least one approved clinic or hospital before it can be listed or receive bookings.
 - The system must represent and display the doctor’s organization affiliations.
 - Affiliation must be authorized by the clinic/hospital. Exact invitation/request/approval workflow remains open.
 - Doctor profile may include name, credentials, specialty, languages, experience, biography, consultation modes, and affiliated locations, subject to verification requirements to be defined.
 
 ### 8.4 Schedules and availability
+
 - Organization staff and/or authorized doctors can configure working hours, appointment duration, breaks, exceptions, and leave.
 - Availability shown to patients must account for the doctor, location, service, duration, and existing bookings/requests according to the agreed slot policy.
 - Time zones must be handled consistently and displayed in the patient’s local context.
@@ -104,6 +115,7 @@ Platform operations role that reviews organization onboarding, manages marketpla
 - Whether a pending request temporarily holds a slot, and for how long, remains an open decision.
 
 ### 8.5 Appointment management
+
 - Patient can request, view, reschedule, and cancel appointments.
 - Clinic staff can view requests and approve or reject them, with optional reason/message.
 - Appointment status must distinguish at minimum: Pending, Confirmed, Rejected, Cancelled, Completed, and No-show. Exact transitions and who can apply them must be specified.
@@ -112,6 +124,7 @@ Platform operations role that reviews organization onboarding, manages marketpla
 - Clinic response deadline, auto-expiry behavior, cancellation rules, rescheduling rules, and no-response handling remain open.
 
 ### 8.6 Patient account and privacy
+
 - Patient can register, sign in/out, recover access, and manage contact/profile information.
 - Patient can view their own appointment history and status.
 - Collect only information needed to discover and book care for the first release.
@@ -119,12 +132,14 @@ Platform operations role that reviews organization onboarding, manages marketpla
 - Patients must be able to understand what data is collected and how it is used.
 
 ### 8.7 Doctor workspace
+
 - View assigned schedule and relevant appointment details.
 - Update appointment status where authorized.
 - Access only the patient information needed for care associated with their appointments.
 - Consultation notes, diagnoses, prescriptions, and sharing visit summaries are optional scope and require further decisions on privacy, retention, and audit.
 
 ### 8.8 Clinic/hospital workspace
+
 - Manage organization profile, locations, operating hours, departments/services, and consultation fees.
 - Add/invite doctors and manage affiliations.
 - Configure schedules and availability.
@@ -133,6 +148,7 @@ Platform operations role that reviews organization onboarding, manages marketpla
 - Manage staff membership and permissions (basic staff role at minimum; more granular roles to be decided).
 
 ### 8.9 Platform administration
+
 - Review organization applications and verification details.
 - Manage user and organization accounts, specialties, and service categories.
 - Respond to support/reporting cases.
@@ -141,6 +157,7 @@ Platform operations role that reviews organization onboarding, manages marketpla
 - Platform staff should not routinely access clinical information.
 
 ## 9. Non-functional requirements
+
 - **Security:** role-based authorization; tenant/organization isolation enforced server-side; secure authentication and session/token handling; rate limiting; input validation; protection against common web vulnerabilities; secure secret management.
 - **Privacy:** data minimization; clear consent and privacy notices; retention/deletion policy; access logging for sensitive records; privacy review before storing clinical data.
 - **Reliability:** appointment operations must be transaction-safe and resilient to duplicate submissions and retries.
@@ -151,6 +168,7 @@ Platform operations role that reviews organization onboarding, manages marketpla
 - **Localization:** support India as initial market is a working assumption; currency, phone, address, and time-zone handling to be confirmed.
 
 ## 10. Proposed architecture and technology
+
 - Web frontend: Next.js + TypeScript.
 - API: Node.js + Express + TypeScript.
 - Database: PostgreSQL + Prisma ORM.
@@ -162,7 +180,9 @@ Platform operations role that reviews organization onboarding, manages marketpla
 The web and Expo clients will use the same API and booking rules. PostgreSQL is recommended because clinics, doctors, affiliations, schedules, patients, and appointments have relational constraints and appointment approval needs transactional consistency.
 
 ## 11. Success measures
+
 Initial candidate measures (targets to be set after validation):
+
 - Patient search-to-profile and profile-to-request conversion.
 - Appointment requests approved, rejected, or left unanswered.
 - Time from request to clinic decision.
@@ -172,6 +192,7 @@ Initial candidate measures (targets to be set after validation):
 - Patient and clinic task completion/error rates.
 
 ## 12. Risks and dependencies
+
 - Healthcare privacy and regulatory obligations depend on launch geography and data collected; these must be reviewed before production use with real patient data.
 - Organization and doctor credential verification process is not yet specified.
 - Availability and pending-slot reservation rules affect booking fairness and conflicts.
@@ -180,6 +201,7 @@ Initial candidate measures (targets to be set after validation):
 - Reviews, fees, online payments, and clinical records may add moderation, privacy, and operational complexity.
 
 ## 13. Open decisions
+
 1. Initial geography and applicable legal/privacy requirements.
 2. Patient account required before booking, or guest request allowed.
 3. Can a patient book a specific doctor, a service at a clinic, or both?
@@ -197,22 +219,29 @@ Initial candidate measures (targets to be set after validation):
 15. Product branding, app name, and visual theme.
 
 ## 14. Delivery phases
+
 ### Phase 0 — Requirements and validation
+
 Resolve open decisions, validate workflows with representative patients and clinic staff, and define privacy/security needs.
 
 ### Phase 1 — Web MVP
+
 Build marketplace discovery, organization onboarding/review, doctor affiliation, schedules, patient appointment requests, clinic approval, account management, and notifications selected for MVP.
 
 ### Phase 2 — Web expansion
+
 Add prioritized operational reporting, improved clinic controls, and any approved secondary features such as reviews or payments.
 
 ### Phase 3 — Expo patient app
+
 Build patient discovery, booking, appointment management, and push notifications on the shared API.
 
 ### Phase 4 — Production readiness
+
 Complete security/privacy review, load and recovery testing, monitoring, support processes, and launch readiness for the selected jurisdiction.
 
 ## 15. Current agreements
+
 - The product is a marketplace where patients discover and compare healthcare options.
 - Patients can find nearby hospitals and clinics, browse larger hospitals, and browse by specialty or health concern.
 - Patients submit appointment requests; clinic/hospital staff approval is required before confirmation.
@@ -221,3 +250,18 @@ Complete security/privacy review, load and recovery testing, monitoring, support
 - Build the web app first, then the Expo mobile app on the same backend.
 - Proposed stack: Next.js, Node/Express/TypeScript, PostgreSQL/Prisma, then Expo.
 - Provider listing details are a starting point and can be reduced during design if they feel crowded.
+
+| Part | Area                                                   |
+| ---- | ------------------------------------------------------ |
+| 1    | Patient Home page                                      |
+| 2    | Patient search results                                 |
+| 3    | Clinic or hospital details                             |
+| 4    | Doctor selection and profile                           |
+| 5    | Appointment time selection                             |
+| 6    | Booking details and phone OTP                          |
+| 7    | Booking request confirmation                           |
+| 8    | Patient appointments and profile                       |
+| 9    | Clinic and hospital workspace                          |
+| 10   | Doctor workspace                                       |
+| 11   | Platform admin workspace                               |
+| 12   | Connect the web app to the API and prepare for release |

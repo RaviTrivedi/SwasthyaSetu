@@ -1,0 +1,8 @@
+.dialog { margin: auto; width: min(44rem, calc(100% - 2rem)); max-height: calc(100dvh - 2rem); overflow-y: auto; padding: clamp(1rem, 4vw, 2rem); border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--navy); box-shadow: 0 20px 60px rgb(20 50 74 / 20%); }
+.dialog::backdrop { background: rgb(20 50 74 / 55%); }
+.heading, .actions { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap; }
+.heading h2 { font-size: 1.25rem; }
+.actions { margin-top: var(--space-6); }
+.dialog button, .dialog a { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: var(--space-3) var(--space-4); border: 1px solid var(--teal); border-radius: var(--radius); color: var(--teal); background: var(--surface); font: inherit; font-weight: 600; cursor: pointer; }
+.dialog .send { background: var(--teal); color: var(--surface); }
+@media (max-width: 540px) { .actions { flex-direction: column; align-items: stretch; } }

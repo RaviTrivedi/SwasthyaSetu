@@ -7,15 +7,15 @@ export type Facility = {
   address: string;
   distanceKm: number;
   services: readonly string[];
+  appointmentInfo?: string;
 };
 
 type ProviderCardProps = {
   facility: Facility;
-  onViewDetails: (facility: Facility) => void;
   actionLabel?: string;
 };
 
-export default function ProviderCard({ facility, onViewDetails, actionLabel = "View details" }: ProviderCardProps) {
+export default function ProviderCard({ facility, actionLabel = "View details" }: ProviderCardProps) {
   return (
     <article className={styles.card}>
       <div className={styles.topline}>
@@ -30,14 +30,20 @@ export default function ProviderCard({ facility, onViewDetails, actionLabel = "V
           {facility.services.map((service) => <li key={service}>{service}</li>)}
         </ul>
       </div>
-      <button
-        type="button"
+      {facility.appointmentInfo && (
+        <p className={styles.appointments}>
+          <span className={styles.label}>Appointments</span>
+          {facility.appointmentInfo}
+        </p>
+      )}
+      <Link
+        href={`/facilities/${encodeURIComponent(facility.id)}`}
         className={styles.details}
         aria-label={`${actionLabel} for ${facility.name}`}
-        onClick={() => onViewDetails(facility)}
       >
         {actionLabel} <span aria-hidden="true">→</span>
-      </button>
+      </Link>
     </article>
   );
 }
+import Link from "next/link";

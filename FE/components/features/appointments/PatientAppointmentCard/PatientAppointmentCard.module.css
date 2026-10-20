@@ -1,0 +1,17 @@
+.card { height: 100%; min-width: 0; padding: var(--space-6); border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); overflow-wrap: anywhere; }
+.card h3 { font-size: 1.125rem; line-height: 1.4; margin-block: var(--space-4) var(--space-2); }
+.card time { display: block; margin-block: var(--space-3); font-weight: 600; }
+.status { display: inline-block; padding: var(--space-2) var(--space-3); border-radius: var(--radius); font-size: 0.875rem; font-weight: 600; background: #edf1f4; color: var(--navy); }
+.status[data-status="Pending"] { background: #fff4d6; color: #754b00; border: 1px dashed #98700d; }
+.status[data-status="Confirmed"] { background: var(--teal); color: white; }
+.status[data-status="Rejected"] { background: #fff0ed; color: #9b2c20; }
+.status[data-status="Completed"] { background: var(--mint); color: var(--teal); }
+.service, .note { color: var(--muted); font-size: 0.875rem; }
+.note { margin-top: var(--space-3); }
+.note:empty { display: none; }
+.details { margin-top: var(--space-3); }
+.card > a.details { display: flex; align-items: center; min-height: 44px; color: var(--teal); text-decoration: underline; font-weight: 600; }
+.details summary { cursor: pointer; padding-block: var(--space-3); min-height: 44px; color: var(--teal); font-weight: 600; }
+.details a { display: inline-block; padding-block: var(--space-3); text-decoration: underline; color: var(--teal); }
+.card button { margin-top: var(--space-3); min-height: 44px; padding: var(--space-2) var(--space-4); border: 1px solid var(--control-border); border-radius: var(--radius); background: var(--surface); color: var(--navy); font: inherit; cursor: pointer; }
+.card button:hover { background: var(--mint); }

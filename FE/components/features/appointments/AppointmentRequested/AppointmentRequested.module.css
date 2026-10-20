@@ -1,0 +1,93 @@
+.panel {
+  max-width: 52rem;
+  margin-inline: auto;
+  padding: clamp(1rem, 4vw, 2.5rem);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.panel h1 {
+  font-size: clamp(1.6rem, 4vw, 2.25rem);
+  line-height: 1.25;
+  margin-block: var(--space-4);
+}
+.panel h1 span {
+  font-size: 1rem;
+}
+.panel h2 {
+  font-size: 1.25rem;
+  margin-top: var(--space-8);
+}
+.panel p {
+  margin-block: var(--space-3);
+}
+.preview,
+.note {
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+.check {
+  display: grid;
+  place-items: center;
+  width: 5rem;
+  height: 5rem;
+  margin: var(--space-6) auto;
+  border-radius: 50%;
+  background: var(--mint);
+  color: var(--teal);
+}
+.status {
+  color: var(--teal);
+  font-weight: 600;
+}
+.summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6);
+  margin-block: var(--space-6);
+}
+.summary dt {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.summary dd {
+  margin-top: var(--space-1);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+.actions a,
+.actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--teal);
+  border-radius: var(--radius);
+  color: var(--teal);
+  background: var(--surface);
+  font: inherit;
+  font-weight: 600;
+}
+.actions a:hover {
+  background: var(--mint);
+}
+.actions button:disabled {
+  border-color: var(--border);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+@media (max-width: 600px) {
+  .summary {
+    grid-template-columns: 1fr;
+  }
+  .actions {
+    flex-direction: column;
+  }
+}

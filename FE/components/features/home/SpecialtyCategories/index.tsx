@@ -1,6 +1,6 @@
-"use client";
+﻿
 
-import { useState } from "react";
+import Link from "next/link";
 import styles from "./SpecialtyCategories.module.css";
 
 const specialties = [
@@ -15,7 +15,7 @@ const specialties = [
 ];
 
 export default function SpecialtyCategories() {
-  const [selectedSpecialty, setSelectedSpecialty] = useState("");
+
 
   return (
     <section className={styles.section} aria-labelledby="specialty-categories-title">
@@ -24,21 +24,19 @@ export default function SpecialtyCategories() {
       <ul className={styles.grid}>
         {specialties.map(({ name, marker }) => (
           <li key={name}>
-            <button
-              type="button"
+            <Link
               className={styles.card}
-              onClick={() => setSelectedSpecialty(name)}
+              href={`/search?${new URLSearchParams({ query: name })}`}
             >
               <span className={styles.marker} aria-hidden="true">{marker}</span>
               <span className={styles.name}>{name}</span>
               <span className={styles.arrow} aria-hidden="true">→</span>
-            </button>
+            </Link>
           </li>
         ))}
       </ul>
-      <p className={styles.status} role="status" aria-atomic="true">
-        {selectedSpecialty && `${selectedSpecialty}: specialty browsing is coming soon.`}
-      </p>
+
     </section>
   );
 }
+

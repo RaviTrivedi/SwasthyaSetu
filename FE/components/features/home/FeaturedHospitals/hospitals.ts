@@ -11,7 +11,7 @@ export const hospitals = [
     services: ["Cardiology", "Orthopedics", "General Medicine"],
   },
   {
-    id: "willow-park-hospital",
+    id: "search-willow-hospital",
     name: "Willow Park Hospital",
     type: "Hospital",
     address: "Vastrapur, Ahmedabad",

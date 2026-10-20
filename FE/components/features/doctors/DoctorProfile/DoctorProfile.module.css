@@ -1,0 +1,18 @@
+.back { display: inline-flex; align-items: center; min-height: 44px; margin-bottom: var(--space-4); color: var(--teal); font-weight: 600; }
+.back:hover, .link:hover { text-decoration: underline; }
+.header { padding: clamp(1.5rem, 4vw, 3rem); background: var(--mint); border: 1px solid var(--border); border-radius: var(--space-4); }
+.specialty, .type { color: var(--teal); font-size: 0.875rem; font-weight: 600; }
+.header h1 { margin-top: var(--space-3); font-size: clamp(2rem, 4vw, 3rem); line-height: 1.2; letter-spacing: -0.035em; overflow-wrap: anywhere; }
+.facts { display: flex; flex-wrap: wrap; gap: var(--space-6); margin-top: var(--space-6); }
+.facts dt { font-size: 0.8125rem; color: var(--muted); }
+.facts dd { margin-top: var(--space-1); font-weight: 600; }
+.note { margin-top: var(--space-6); font-size: 0.8125rem; color: var(--muted); }
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-8); margin-top: var(--space-8); }
+.layout h2 { font-size: 1.25rem; margin-bottom: var(--space-4); }
+.introduction, .address { color: var(--muted); line-height: 1.7; }
+.affiliations { display: grid; gap: var(--space-4); list-style: none; }
+.card { padding: var(--space-6); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.card h3 { margin-top: var(--space-2); font-size: 1.125rem; }
+.address { margin-top: var(--space-3); }
+.link { display: inline-flex; align-items: center; min-height: 44px; margin-top: var(--space-4); color: var(--teal); font-weight: 600; }
+@media (max-width: 700px) { .layout { grid-template-columns: minmax(0, 1fr); } }

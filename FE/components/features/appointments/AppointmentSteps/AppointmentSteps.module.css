@@ -1,0 +1,9 @@
+.steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); padding: 0; margin: 0 0 var(--space-6); list-style: none; }
+.steps li { display: flex; align-items: stretch; min-width: 0; border-radius: var(--radius); color: var(--navy); font-weight: 600; }
+.steps li[aria-current="step"] .control { border-color: var(--teal); background: var(--mint); }
+.number { display: grid; place-items: center; flex-shrink: 0; width: 2rem; height: 2rem; border-radius: 50%; background: var(--mint); color: var(--teal); }
+.control { display: flex; flex: 1; align-items: center; gap: var(--space-3); width: 100%; min-height: 44px; padding: var(--space-4); border: 2px solid var(--border); background: var(--surface); color: inherit; text-decoration: none; border-radius: inherit; }
+a.control:hover { background: var(--mint); }
+[aria-current="step"] .number { background: var(--teal); color: var(--surface); }
+.steps small { display: block; margin-top: var(--space-1); color: var(--muted); font-size: 0.75rem; font-weight: 400; }
+@media (max-width: 700px) { .steps { grid-template-columns: 1fr; } }

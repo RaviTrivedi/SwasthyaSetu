@@ -1,0 +1,17 @@
+.section { overflow-wrap: anywhere; }
+.section p { margin-block: var(--space-3); }
+.note { color: var(--muted); font-size: 0.875rem; }
+.message { color: var(--teal); }
+.section button, .section input, .section select { min-height: 44px; padding: var(--space-3); border: 1px solid var(--control-border); border-radius: var(--radius); color: var(--navy); background: var(--surface); font: inherit; }
+.section button { cursor: pointer; margin: var(--space-2) var(--space-2) var(--space-2) 0; }
+.section button:hover:not(:disabled) { background: var(--mint); }
+.section button:disabled { color: var(--muted); cursor: not-allowed; }
+.section label { display: grid; gap: var(--space-2); min-width: 0; }
+.section select, .section input { width: 100%; min-width: 0; }
+.filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); margin-block: var(--space-6); }
+.panel { padding: var(--space-4); background: var(--mint); border: 1px solid var(--border); border-radius: var(--radius); margin-block: var(--space-4); }
+.list { list-style: none; display: grid; gap: var(--space-4); }
+.list > li { min-width: 0; padding: var(--space-6); border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+.status { font-weight: 600; color: var(--teal); }
+.preview { padding: var(--space-3); border: 1px dashed var(--control-border); margin-block: var(--space-4); }
+@media (max-width: 600px) { .filters { grid-template-columns: 1fr; } }

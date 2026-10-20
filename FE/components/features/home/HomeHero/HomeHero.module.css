@@ -7,6 +7,27 @@
 
 .intro { max-width: 42rem; }
 
+.overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(1.5rem, 4vw, 3rem);
+}
+
+.visual {
+  overflow: hidden;
+  border-radius: var(--space-4);
+  background: var(--surface);
+}
+
+.image {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
 .eyebrow {
   margin-bottom: var(--space-4);
   color: var(--teal);
@@ -16,7 +37,7 @@
 
 .intro h1 {
   color: var(--navy);
-  font-size: clamp(2rem, 4.5vw, 3.75rem);
+  font-size: clamp(2rem, 3.8vw, 3.25rem);
   font-weight: 600;
   line-height: 1.12;
   letter-spacing: -0.04em;
@@ -35,6 +56,11 @@
   margin-top: var(--space-4);
   color: var(--muted);
   font-size: 0.875rem;
+}
+
+@media (max-width: 800px) {
+  .overview { grid-template-columns: minmax(0, 1fr); }
+  .visual { width: 100%; max-width: 36rem; }
 }
 
 @media (max-width: 480px) {

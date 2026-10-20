@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { cacheLife } from "next/cache";
 import styles from "./Footer.module.css";
 
@@ -8,9 +8,9 @@ const groups: { title: string; items: FooterItem[] }[] = [
   {
     title: "Explore",
     items: [
-      { label: "Find care", href: "/#home-hero-title" },
+      { label: "Find care", href: "/search" },
       { label: "Specialties", href: "/#specialty-categories-title" },
-      { label: "Hospitals", href: "/#featured-hospitals-title" },
+      { label: "Hospitals", href: "/search?query=Hospitals" },
     ],
   },
   {
@@ -72,3 +72,4 @@ export default async function Footer() {
     </footer>
   );
 }
+

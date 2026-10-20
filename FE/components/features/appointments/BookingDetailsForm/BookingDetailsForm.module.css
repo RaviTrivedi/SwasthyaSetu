@@ -1,0 +1,21 @@
+.form { margin-top: var(--space-6); padding: clamp(1rem, 3vw, 2rem); border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+.form h2 { font-size: 1.25rem; }
+.note, .status { margin-top: var(--space-2); color: var(--muted); font-size: 0.875rem; }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6); margin-block: var(--space-6); }
+.field { min-width: 0; }
+.phoneInput { display: flex; align-items: stretch; }
+.countryCode { display: flex; align-items: center; padding-inline: var(--space-3); border: 1px solid var(--control-border); border-right: 0; border-radius: var(--radius) 0 0 var(--radius); background: var(--mint); color: var(--navy); font-weight: 600; }
+.phoneInput input { min-width: 0; flex: 1; border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.field label { display: block; margin-bottom: var(--space-2); font-size: 0.875rem; font-weight: 600; }
+.field input, .field textarea { width: 100%; min-height: 44px; padding: var(--space-3); border: 1px solid var(--control-border); border-radius: var(--radius); background: var(--background); color: var(--navy); font: inherit; }
+.field textarea { resize: vertical; }
+.field input::placeholder { color: var(--muted); }
+.field [aria-invalid="true"] { border-color: #b42318; }
+.error { margin-top: var(--space-2); color: #b42318; font-size: 0.875rem; }
+.reason { grid-column: 1 / -1; }
+.submit { margin-top: var(--space-4); min-height: 44px; padding: var(--space-3) var(--space-4); border: 1px solid var(--teal); border-radius: var(--radius); background: var(--teal); color: var(--surface); font: inherit; font-weight: 600; cursor: pointer; }
+.submit:hover { background: var(--navy); }
+.status { margin-top: var(--space-4); }
+@media (max-width: 650px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+a.submit { display: inline-flex; align-items: center; text-decoration: none; }

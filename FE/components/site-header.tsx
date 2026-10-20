@@ -1,13 +1,13 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import styles from "./site-header.module.css";
 
 const navigation = [
-  { href: "/", label: "Find care" },
-  { href: "/hospitals", label: "Hospitals" },
-  { href: "/specialties", label: "Specialties" },
+  { href: "/search", label: "Find care" },
+  { href: "/search?query=Hospitals", label: "Hospitals" },
+  { href: "/#specialty-categories-title", label: "Specialties" },
 ];
 
 export default function SiteHeader() {
@@ -33,9 +33,9 @@ export default function SiteHeader() {
             </li>
           ))}
         </ul>
-        <Link href="/sign-in" className={styles.signIn} onClick={() => setIsOpen(false)}>
-          Sign in
-        </Link>
+        <span className={styles.signIn} aria-disabled="true" title="Sign in is coming soon">
+          Sign in (coming soon)
+        </span>
       </>
     );
   }
@@ -82,3 +82,4 @@ export default function SiteHeader() {
     </header>
   );
 }
+

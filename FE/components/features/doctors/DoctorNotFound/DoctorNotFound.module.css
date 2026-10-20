@@ -1,0 +1,4 @@
+.message { padding: clamp(1.5rem, 5vw, 3rem); background: var(--mint); border-radius: var(--radius); }
+.message h1 { font-size: clamp(1.75rem, 4vw, 2.5rem); }
+.message p { margin-top: var(--space-4); color: var(--muted); }
+.message a { display: inline-flex; align-items: center; min-height: 44px; margin-top: var(--space-6); color: var(--teal); font-weight: 600; text-decoration: underline; }

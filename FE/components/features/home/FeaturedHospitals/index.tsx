@@ -1,12 +1,12 @@
-"use client";
+﻿
 
-import { useState } from "react";
+import Link from "next/link";
 import ProviderCard from "@/components/features/providers/ProviderCard";
 import { hospitals } from "./hospitals";
 import styles from "./FeaturedHospitals.module.css";
 
 export default function FeaturedHospitals() {
-  const [message, setMessage] = useState("");
+
 
   return (
     <section className={styles.section} aria-labelledby="featured-hospitals-title">
@@ -15,13 +15,12 @@ export default function FeaturedHospitals() {
           <p className={styles.eyebrow}>Hospital care in Ahmedabad</p>
           <h2 id="featured-hospitals-title">Hospitals to explore</h2>
         </div>
-        <button
-          type="button"
+        <Link
           className={styles.viewAll}
-          onClick={() => setMessage("Browsing all hospitals is coming soon.")}
+          href="/search?location=Ahmedabad&query=Hospitals"
         >
           View all hospitals <span aria-hidden="true">→</span>
-        </button>
+        </Link>
       </div>
       <p className={styles.description}>
         Explore hospitals offering care across a range of specialties.
@@ -33,12 +32,12 @@ export default function FeaturedHospitals() {
             <ProviderCard
               facility={hospital}
               actionLabel="View hospital"
-              onViewDetails={(selected) => setMessage(`Hospital details for ${selected.name} are coming soon.`)}
             />
           </li>
         ))}
       </ul>
-      <p className={styles.status} role="status" aria-atomic="true">{message}</p>
+
     </section>
   );
 }
+
