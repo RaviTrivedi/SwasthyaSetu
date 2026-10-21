@@ -25,7 +25,10 @@
   font-weight: 600;
 }
 
-.distance, .address { color: var(--muted); }
+.distance,
+.address {
+  color: var(--muted);
+}
 .name {
   margin-top: var(--space-4);
   color: var(--navy);
@@ -33,9 +36,17 @@
   font-weight: 600;
   line-height: 1.4;
 }
-.address { margin-top: var(--space-2); font-size: 0.875rem; }
-.services { margin-block: var(--space-6); }
-.label { font-size: 0.8125rem; font-weight: 600; }
+.address {
+  margin-top: var(--space-2);
+  font-size: 0.875rem;
+}
+.services {
+  margin-block: var(--space-6);
+}
+.label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
 .services ul {
   display: flex;
   flex-wrap: wrap;
@@ -70,7 +81,9 @@
   font-weight: 600;
   cursor: pointer;
 }
-.details:hover { background: var(--mint); }
+.details:hover {
+  background: var(--mint);
+}
 .appointments {
   display: grid;
   gap: var(--space-1);
@@ -78,4 +91,6 @@
   color: var(--muted);
   font-size: 0.875rem;
 }
-.appointments .label { color: var(--navy); }
+.appointments .label {
+  color: var(--navy);
+}

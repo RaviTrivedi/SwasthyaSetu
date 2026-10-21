@@ -1,0 +1,21 @@
+.panel {
+  padding: var(--space-6);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow-wrap: anywhere;
+}
+.panel h3 {
+  margin-top: var(--space-6);
+}
+.panel p {
+  color: var(--muted);
+  margin-block: var(--space-3);
+}
+.panel a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--teal);
+  text-decoration: underline;
+}

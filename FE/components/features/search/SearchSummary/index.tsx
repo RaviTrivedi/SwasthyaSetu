@@ -1,5 +1,5 @@
-import CareSearchForm from "@/components/features/home/CareSearchForm";
-import styles from "./SearchSummary.module.css";
+import CareSearchForm from '@/components/features/home/CareSearchForm';
+import styles from './SearchSummary.module.css';
 
 type SearchValues = Record<string, string | string[] | undefined>;
 
@@ -28,7 +28,7 @@ function Summary({
         <CareSearchForm
           key={`${location}-${query}`}
           initialLocation={location}
-          initialQuery={query === "All specialties" ? "" : query}
+          initialQuery={query === 'All specialties' ? '' : query}
         />
       )}
     </section>
@@ -43,11 +43,11 @@ export default async function SearchSummary({
   const values = await searchParams;
   return (
     <Summary
-      location={firstValue(values.location) || "Ahmedabad"}
+      location={firstValue(values.location) || 'Ahmedabad'}
       query={
         firstValue(values.query) ||
         firstValue(values.specialty) ||
-        "All specialties"
+        'All specialties'
       }
     />
   );

@@ -5,7 +5,9 @@
   background: var(--mint);
 }
 
-.intro { max-width: 42rem; }
+.intro {
+  max-width: 42rem;
+}
 
 .overview {
   display: grid;
@@ -59,10 +61,17 @@
 }
 
 @media (max-width: 800px) {
-  .overview { grid-template-columns: minmax(0, 1fr); }
-  .visual { width: 100%; max-width: 36rem; }
+  .overview {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .visual {
+    width: 100%;
+    max-width: 36rem;
+  }
 }
 
 @media (max-width: 480px) {
-  .hero { padding-inline: var(--space-4); }
+  .hero {
+    padding-inline: var(--space-4);
+  }
 }

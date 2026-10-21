@@ -11,7 +11,11 @@
   flex-wrap: wrap;
   gap: var(--space-4);
 }
-.eyebrow { color: var(--teal); font-size: 1.0625rem; font-weight: 600; }
+.eyebrow {
+  color: var(--teal);
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
 .heading h1 {
   margin-top: var(--space-2);
   font-size: clamp(2rem, 4vw, 3rem);
@@ -31,16 +35,32 @@
   font-weight: 600;
   font-size: 0.875rem;
 }
-.changeSearch:hover { background: var(--background); }
+.changeSearch:hover {
+  background: var(--background);
+}
 .values {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
   gap: var(--space-6);
   margin-top: var(--space-6);
 }
-.values dt { color: var(--muted); font-size: 0.875rem; }
-.values dd { margin-top: var(--space-1); font-weight: 600; overflow-wrap: anywhere; }
-.note { margin-top: var(--space-6); color: var(--muted); font-size: 0.875rem; }
+.values dt {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.values dd {
+  margin-top: var(--space-1);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.note {
+  margin-top: var(--space-6);
+  color: var(--muted);
+  font-size: 0.875rem;
+}
 @media (max-width: 600px) {
-  .values { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
+  .values {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-4);
+  }
 }

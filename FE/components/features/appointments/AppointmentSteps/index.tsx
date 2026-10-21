@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import styles from "./AppointmentSteps.module.css";
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import styles from './AppointmentSteps.module.css';
 
-const steps = ["Choose doctor", "Date and time", "Patient details"];
+const steps = ['Choose doctor', 'Date and time', 'Patient details'];
 
 export default function AppointmentSteps({ current }: { current: 1 | 2 | 3 }) {
   const params = useSearchParams();
-  const destinations = ["doctor", "time", "details"];
+  const destinations = ['doctor', 'time', 'details'];
   return (
     <nav aria-label="Appointment steps">
       <ol className={styles.steps} aria-label="Appointment request progress">
@@ -16,10 +16,10 @@ export default function AppointmentSteps({ current }: { current: 1 | 2 | 3 }) {
           const enabled =
             index === 0 ||
             (index === 1
-              ? Boolean(params.get("doctorOption"))
-              : Boolean(params.get("slotId")));
+              ? Boolean(params.get('doctorOption'))
+              : Boolean(params.get('slotId')));
           const query = new URLSearchParams(params.toString());
-          query.set("step", destinations[index]);
+          query.set('step', destinations[index]);
           const content = (
             <>
               <span className={styles.number} aria-hidden="true">
@@ -29,12 +29,12 @@ export default function AppointmentSteps({ current }: { current: 1 | 2 | 3 }) {
                 Step {index + 1}: {label}
                 <small>
                   {current === index + 1
-                    ? "Current step"
+                    ? 'Current step'
                     : enabled
-                      ? "Go to step"
+                      ? 'Go to step'
                       : index === 1
-                        ? "Choose a doctor first"
-                        : "Choose a date and time first"}
+                        ? 'Choose a doctor first'
+                        : 'Choose a date and time first'}
                 </small>
               </span>
             </>
@@ -42,12 +42,12 @@ export default function AppointmentSteps({ current }: { current: 1 | 2 | 3 }) {
           return (
             <li
               key={label}
-              aria-current={current === index + 1 ? "step" : undefined}
+              aria-current={current === index + 1 ? 'step' : undefined}
             >
               {enabled ? (
                 <Link
                   className={styles.control}
-                  aria-current={current === index + 1 ? "step" : undefined}
+                  aria-current={current === index + 1 ? 'step' : undefined}
                   href={`/appointments/new?${query}`}
                 >
                   {content}

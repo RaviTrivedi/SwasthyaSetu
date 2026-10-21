@@ -1,1 +1,1 @@
-export { default } from "@/components/features/facilities/FacilityNotFound";
+export { default } from '@/components/features/facilities/FacilityNotFound';

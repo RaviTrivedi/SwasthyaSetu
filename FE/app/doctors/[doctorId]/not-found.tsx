@@ -1,1 +1,1 @@
-export { default } from "@/components/features/doctors/DoctorNotFound";
+export { default } from '@/components/features/doctors/DoctorNotFound';

@@ -1,13 +1,13 @@
-﻿import Link from "next/link";
-import { getFacility } from "@/components/features/facilities/data/facilities";
-import { getFacilityDoctors } from "@/components/features/facilities/data/doctors";
-import DoctorSelection from "../DoctorSelection";
-import styles from "./AppointmentDoctorStep.module.css";
-import AppointmentTimeSelection from "../AppointmentTimeSelection";
-import AppointmentReview from "../AppointmentReview";
-import BookingDetailsForm from "../BookingDetailsForm";
-import AppointmentSteps from "../AppointmentSteps";
-import { getAppointmentSlots } from "../data/slots";
+﻿import Link from 'next/link';
+import { getFacility } from '@/components/features/facilities/data/facilities';
+import { getFacilityDoctors } from '@/components/features/facilities/data/doctors';
+import DoctorSelection from '../DoctorSelection';
+import styles from './AppointmentDoctorStep.module.css';
+import AppointmentTimeSelection from '../AppointmentTimeSelection';
+import AppointmentReview from '../AppointmentReview';
+import BookingDetailsForm from '../BookingDetailsForm';
+import AppointmentSteps from '../AppointmentSteps';
+import { getAppointmentSlots } from '../data/slots';
 
 export default async function AppointmentDoctorStep({
   searchParams,
@@ -16,7 +16,7 @@ export default async function AppointmentDoctorStep({
 }) {
   const params = await searchParams;
   const facilityId =
-    typeof params.facilityId === "string" ? params.facilityId.trim() : "";
+    typeof params.facilityId === 'string' ? params.facilityId.trim() : '';
   const facility = getFacility(facilityId);
 
   if (!facility) {
@@ -36,15 +36,15 @@ export default async function AppointmentDoctorStep({
 
   const doctors = getFacilityDoctors(facility.id);
   const doctorOption =
-    typeof params.doctorOption === "string" ? params.doctorOption : "";
-  const step = typeof params.step === "string" ? params.step : "doctor";
+    typeof params.doctorOption === 'string' ? params.doctorOption : '';
+  const step = typeof params.step === 'string' ? params.step : 'doctor';
   const validDoctor =
-    doctorOption === "any" ||
+    doctorOption === 'any' ||
     doctors.some((doctor) => doctor.id === doctorOption);
   const chooseHref = `/appointments/new?${new URLSearchParams({
     facilityId: facility.id,
   })}`;
-  if ((step !== "doctor" || doctorOption) && !validDoctor) {
+  if ((step !== 'doctor' || doctorOption) && !validDoctor) {
     return (
       <section className={styles.header}>
         <h1>Choose a doctor preference first</h1>
@@ -59,13 +59,13 @@ export default async function AppointmentDoctorStep({
   }
   const slots = getAppointmentSlots(facility.id, doctorOption);
   const selected = slots.find((slot) => slot.id === params.slotId);
-  if (step === "details") {
+  if (step === 'details') {
     if (
       !selected ||
       params.doctorId !== selected.doctorId ||
       params.date !== selected.date ||
       params.time !== selected.time ||
-      params.timeZone !== "Asia/Kolkata"
+      params.timeZone !== 'Asia/Kolkata'
     ) {
       return (
         <section className={styles.header}>
@@ -100,8 +100,8 @@ export default async function AppointmentDoctorStep({
             doctorId: selected.doctorId,
             date: selected.date,
             time: selected.time,
-            timeZone: "Asia/Kolkata",
-            step: "time",
+            timeZone: 'Asia/Kolkata',
+            step: 'time',
           })}`}
         >
           Edit date and time
@@ -111,7 +111,7 @@ export default async function AppointmentDoctorStep({
             facilityId: facility.id,
             doctorOption,
             slotId: selected.id,
-            preview: "request-sent",
+            preview: 'request-sent',
           })}`}
           key={`${facility.id}-${doctorOption}-${selected.id}`}
           review={
@@ -127,14 +127,14 @@ export default async function AppointmentDoctorStep({
   }
   return (
     <>
-      <AppointmentSteps current={step === "time" ? 2 : 1} />
+      <AppointmentSteps current={step === 'time' ? 2 : 1} />
       <header className={styles.header}>
         <p className={styles.eyebrow}>
-          Appointment request ·{" "}
-          {step === "time" ? "Step 2 of 3" : "Step 1 of 3"}
+          Appointment request ·{' '}
+          {step === 'time' ? 'Step 2 of 3' : 'Step 1 of 3'}
         </p>
         <h1>
-          {step === "time" ? "Choose a date and time" : "Choose a doctor"}
+          {step === 'time' ? 'Choose a date and time' : 'Choose a doctor'}
         </h1>
         <h2>{facility.name}</h2>
         <p>
@@ -144,12 +144,12 @@ export default async function AppointmentDoctorStep({
           Choose a different facility
         </Link>
       </header>
-      {step === "time" ? (
+      {step === 'time' ? (
         <>
           <p className={styles.preference}>
-            Doctor preference:{" "}
-            {doctorOption === "any"
-              ? "Any available doctor"
+            Doctor preference:{' '}
+            {doctorOption === 'any'
+              ? 'Any available doctor'
               : doctors.find((doctor) => doctor.id === doctorOption)?.name}
           </p>
           <AppointmentTimeSelection
@@ -158,7 +158,7 @@ export default async function AppointmentDoctorStep({
             doctorOption={doctorOption}
             slots={slots}
             initialSlotId={
-              typeof params.slotId === "string" ? params.slotId : undefined
+              typeof params.slotId === 'string' ? params.slotId : undefined
             }
           />
         </>

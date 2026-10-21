@@ -1,7 +1,7 @@
-import Image from "next/image";
-import heroCare from "@/public/hero-care.png";
-import CareSearchForm from "../CareSearchForm";
-import styles from "./HomeHero.module.css";
+import Image from 'next/image';
+import heroCare from '@/public/hero-care.png';
+import CareSearchForm from '../CareSearchForm';
+import styles from './HomeHero.module.css';
 
 export default function HomeHero() {
   return (
@@ -9,10 +9,14 @@ export default function HomeHero() {
       <div className={styles.overview}>
         <div className={styles.intro}>
           <p className={styles.eyebrow}>Care closer to you</p>
-          <h1 id="home-hero-title">Find the right care,<br />close to home.</h1>
+          <h1 id="home-hero-title">
+            Find the right care,
+            <br />
+            close to home.
+          </h1>
           <p className={styles.description}>
-            Discover nearby hospitals, clinics, and doctors. Explore your options
-            and request an appointment when you find the care you need.
+            Discover nearby hospitals, clinics, and doctors. Explore your
+            options and request an appointment when you find the care you need.
           </p>
         </div>
         <div className={styles.visual}>

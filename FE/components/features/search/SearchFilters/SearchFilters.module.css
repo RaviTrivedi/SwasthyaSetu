@@ -5,12 +5,32 @@
   border-radius: var(--radius);
   background: var(--surface);
 }
-.heading { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
-.heading h2 { font-size: 1.125rem; font-weight: 600; }
-.toggle { display: none; }
-.panel { margin-top: var(--space-3); }
-.note, .hint { color: var(--muted); font-size: 0.875rem; }
-.hint { margin-top: var(--space-2); font-size: 0.8125rem; }
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.heading h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+.toggle {
+  display: none;
+}
+.panel {
+  margin-top: var(--space-3);
+}
+.note,
+.hint {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.hint {
+  margin-top: var(--space-2);
+  font-size: 0.8125rem;
+}
 .grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -18,12 +38,37 @@
   gap: var(--space-6);
   margin-top: var(--space-6);
 }
-.facility { border: 0; min-width: 0; }
-.facility legend, .field > label { display: block; margin-bottom: var(--space-2); font-size: 0.875rem; font-weight: 600; }
-.checkboxes { display: flex; flex-wrap: wrap; gap: var(--space-4); }
-.checkboxes label { display: inline-flex; align-items: center; gap: var(--space-2); min-height: 44px; cursor: pointer; }
-.checkboxes input { width: 18px; height: 18px; accent-color: var(--teal); }
-.field { min-width: 0; }
+.facility {
+  border: 0;
+  min-width: 0;
+}
+.facility legend,
+.field > label {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+.checkboxes label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  cursor: pointer;
+}
+.checkboxes input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--teal);
+}
+.field {
+  min-width: 0;
+}
 .field select {
   width: 100%;
   min-height: 44px;
@@ -35,17 +80,57 @@
   font: inherit;
   font-size: 1rem;
 }
-.field select:disabled { color: var(--muted); cursor: not-allowed; }
-.actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-6); }
-.clear, .toggle { min-height: 44px; padding: var(--space-2) var(--space-3); border: 1px solid var(--teal); border-radius: var(--radius); background: var(--surface); color: var(--teal); font: inherit; font-size: 0.875rem; font-weight: 600; cursor: pointer; }
-.clear:hover:not(:disabled), .toggle:hover { background: var(--mint); }
-.clear:disabled { border-color: var(--border); color: var(--muted); cursor: not-allowed; }
-@media (max-width: 900px) {
-  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.field select:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+}
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+}
+.clear,
+.toggle {
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--teal);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--teal);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.clear:hover:not(:disabled),
+.toggle:hover {
+  background: var(--mint);
+}
+.clear:disabled {
+  border-color: var(--border);
+  color: var(--muted);
+  cursor: not-allowed;
 }
 @media (max-width: 900px) {
-  .section { padding: var(--space-4); }
-  .toggle { display: inline-flex; align-items: center; }
-  .panel[data-expanded="false"] { display: none; }
-  .grid { grid-template-columns: minmax(0, 1fr); }
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 900px) {
+  .section {
+    padding: var(--space-4);
+  }
+  .toggle {
+    display: inline-flex;
+    align-items: center;
+  }
+  .panel[data-expanded='false'] {
+    display: none;
+  }
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

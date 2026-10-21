@@ -1,19 +1,97 @@
-.panel { max-width: 58rem; padding: clamp(1rem, 4vw, 2rem); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow-wrap: anywhere; }
-.panel h1 { font-size: clamp(1.75rem, 4vw, 2.5rem); }
-.panel h2 { font-size: 1.25rem; margin-bottom: var(--space-3); }
-.panel h3 { font-size: 1.125rem; }
-.panel p { margin-block: var(--space-3); }
-.note, .grid dt { color: var(--muted); font-size: 0.875rem; }
-.link { display: inline-flex; min-height: 44px; align-items: center; color: var(--teal); text-decoration: underline; margin-bottom: var(--space-3); }
-.status { display: inline-block; padding: var(--space-2) var(--space-3); border-radius: var(--radius); background: var(--mint); font-weight: 600; }
-.status[data-status="Pending"] { border: 1px dashed #98700d; background: #fff4d6; color: #754b00; }
-.status[data-status="Confirmed"] { background: var(--teal); color: white; }
-.status[data-status="Rejected"] { background: #fff0ed; color: #9b2c20; }
-.section { margin-top: var(--space-6); padding-top: var(--space-6); border-top: 1px solid var(--border); }
-.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6); }
-.grid dd { margin-top: var(--space-2); }
-.panel button { min-height: 44px; padding: var(--space-3); border: 1px solid var(--control-border); border-radius: var(--radius); background: var(--surface); color: var(--navy); font: inherit; cursor: pointer; }
-.panel button:hover { background: var(--mint); }
-.confirmation { padding: var(--space-4); margin-top: var(--space-4); background: var(--background); border: 1px solid var(--border); border-radius: var(--radius); }
-.actions { display: flex; flex-wrap: wrap; gap: var(--space-3); }
-@media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+.panel {
+  max-width: 58rem;
+  padding: clamp(1rem, 4vw, 2rem);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow-wrap: anywhere;
+}
+.panel h1 {
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+}
+.panel h2 {
+  font-size: 1.25rem;
+  margin-bottom: var(--space-3);
+}
+.panel h3 {
+  font-size: 1.125rem;
+}
+.panel p {
+  margin-block: var(--space-3);
+}
+.note,
+.grid dt {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.link {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  color: var(--teal);
+  text-decoration: underline;
+  margin-bottom: var(--space-3);
+}
+.status {
+  display: inline-block;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  background: var(--mint);
+  font-weight: 600;
+}
+.status[data-status='Pending'] {
+  border: 1px dashed #98700d;
+  background: #fff4d6;
+  color: #754b00;
+}
+.status[data-status='Confirmed'] {
+  background: var(--teal);
+  color: white;
+}
+.status[data-status='Rejected'] {
+  background: #fff0ed;
+  color: #9b2c20;
+}
+.section {
+  margin-top: var(--space-6);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--border);
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6);
+}
+.grid dd {
+  margin-top: var(--space-2);
+}
+.panel button {
+  min-height: 44px;
+  padding: var(--space-3);
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--navy);
+  font: inherit;
+  cursor: pointer;
+}
+.panel button:hover {
+  background: var(--mint);
+}
+.confirmation {
+  padding: var(--space-4);
+  margin-top: var(--space-4);
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+@media (max-width: 600px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

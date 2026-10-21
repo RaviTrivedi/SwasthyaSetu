@@ -1,23 +1,29 @@
-"use client";
+'use client';
 
-import { useRouter } from "next/navigation";
-import type { FormEvent } from "react";
-import styles from "./CareSearchForm.module.css";
+import { useRouter } from 'next/navigation';
+import type { FormEvent } from 'react';
+import styles from './CareSearchForm.module.css';
 
-export default function CareSearchForm({ initialLocation = "", initialQuery = "" }: { initialLocation?: string; initialQuery?: string }) {
+export default function CareSearchForm({
+  initialLocation = '',
+  initialQuery = '',
+}: {
+  initialLocation?: string;
+  initialQuery?: string;
+}) {
   const router = useRouter();
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    const location = String(data.get("location") ?? "").trim();
-    const query = String(data.get("query") ?? "").trim();
+    const location = String(data.get('location') ?? '').trim();
+    const query = String(data.get('query') ?? '').trim();
     const params = new URLSearchParams();
-    if (location) params.set("location", location);
+    if (location) params.set('location', location);
     // Omitting a blank query uses the search page's All specialties default.
-    if (query) params.set("query", query);
+    if (query) params.set('query', query);
     const search = params.toString();
-    router.push(search ? `/search?${search}` : "/search");
+    router.push(search ? `/search?${search}` : '/search');
   }
 
   return (
@@ -52,10 +58,13 @@ export default function CareSearchForm({ initialLocation = "", initialQuery = ""
             aria-describedby="care-query-hint"
           />
         </div>
-        <button className={styles.submit} type="submit">Search care</button>
+        <button className={styles.submit} type="submit">
+          Search care
+        </button>
       </div>
       <p id="care-query-hint" className={styles.hint}>
-        Search by specialty, doctor, clinic, or health concern. Leave blank to explore all specialties.
+        Search by specialty, doctor, clinic, or health concern. Leave blank to
+        explore all specialties.
       </p>
     </form>
   );

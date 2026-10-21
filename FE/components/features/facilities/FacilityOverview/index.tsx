@@ -1,17 +1,16 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import type { FacilityDetails } from "../data/facilities";
-import FacilityServices from "../FacilityServices";
-import FacilityDoctors from "../FacilityDoctors";
-import styles from "./FacilityOverview.module.css";
+import Link from 'next/link';
+import type { FacilityDetails } from '../data/facilities';
+import FacilityServices from '../FacilityServices';
+import FacilityDoctors from '../FacilityDoctors';
+import styles from './FacilityOverview.module.css';
 
 export default function FacilityOverview({
   facility,
 }: {
   facility: FacilityDetails;
 }) {
-
   return (
     <>
       {/* <Link href="/search" className={styles.back}>Back to search</Link> */}
@@ -26,9 +25,7 @@ export default function FacilityOverview({
       <div className={styles.layout}>
         <div className={styles.overview}>
           <section aria-labelledby="facility-about-title">
-            <h2 id="facility-about-title">
-              About {facility?.name}
-            </h2>
+            <h2 id="facility-about-title">About {facility?.name}</h2>
             <p>{facility.description}</p>
           </section>
           <section aria-labelledby="facility-facts-title">
@@ -56,7 +53,10 @@ export default function FacilityOverview({
             Appointment requests need approval from the care team before they
             are confirmed.
           </p>
-          <Link className={styles.requestLink} href={`/appointments/new?facilityId=${encodeURIComponent(facility.id)}`}>
+          <Link
+            className={styles.requestLink}
+            href={`/appointments/new?facilityId=${encodeURIComponent(facility.id)}`}
+          >
             Request appointment
           </Link>
         </section>
