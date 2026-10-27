@@ -1,0 +1,30 @@
+{
+  "name": "swasthyasetu-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "dev": "nodemon --watch src --ext ts,json --exec tsx src/server.ts",
+    "typecheck": "prisma generate && tsc --noEmit",
+    "build": "prisma generate && tsc",
+    "db:validate": "prisma validate",
+    "db:generate": "prisma generate",
+    "start": "node dist/server.js"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.10.1",
+    "@prisma/client": "^7.10.1",
+    "express": "^5.3.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^20.19.43",
+    "nodemon": "^3.1.14",
+    "prisma": "^7.10.1",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
+  }
+}
