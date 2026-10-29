@@ -8,18 +8,29 @@
   },
   "scripts": {
     "dev": "nodemon --watch src --ext ts,json --exec tsx src/server.ts",
-    "typecheck": "prisma generate && tsc --noEmit",
+    "typecheck": "prisma generate && tsc --noEmit && tsc -p tsconfig.test.json",
+    "test": "node --import tsx --test tests/register.test.ts tests/login.test.ts tests/refresh.test.ts tests/logout.test.ts tests/logout-all.test.ts tests/password-reset.test.ts tests/resend.test.ts",
+    "test:password-reset:db": "node --import tsx --test tests/password-reset.database.test.ts",
+    "test:logout-all:db": "node --import tsx --test tests/logout-all.database.test.ts",
+    "test:logout:db": "node --import tsx --test tests/logout.database.test.ts",
+    "test:refresh:db": "node --import tsx --test tests/refresh.database.test.ts",
     "build": "prisma generate && tsc",
     "db:validate": "prisma validate",
     "db:generate": "prisma generate",
     "start": "node dist/server.js"
   },
   "dependencies": {
+    "@node-rs/argon2": "^2.2.2",
     "@prisma/adapter-pg": "^7.10.1",
     "@prisma/client": "^7.10.1",
-    "express": "^5.3.0"
+    "cors": "^2.8.6",
+    "express": "^5.3.0",
+    "jose": "^6.2.13",
+    "resend": "^6.35.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^20.19.43",
     "nodemon": "^3.1.14",

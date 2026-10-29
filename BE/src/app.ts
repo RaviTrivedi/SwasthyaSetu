@@ -1,5 +1,7 @@
 import express from 'express';
 import { apiRouter } from './routes/index.js';
+import { errorHandler } from './middleware/error-handler.js';
+import { browserAccess } from './middleware/browser-access.js';
 
 export const app = express();
 
@@ -7,6 +9,7 @@ export const app = express();
 // Disabling 'x-powered-by' removes the default X-Powered-By: Express header.
 // Docs: https://expressjs.com/en/5x/api/application/#app.disable
 app.disable('x-powered-by');
+app.use(browserAccess);
 
 // app.use(path, middleware) mounts middleware (including routers) at a path.
 // Requests under /api/v1 enter apiRouter; its /health route becomes /api/v1/health.
@@ -27,3 +30,5 @@ app.use((_req, res) => {
   // Docs: https://expressjs.com/en/5x/api/response/#res.json
   res.status(404).json({ message: 'Not found' });
 });
+
+app.use(errorHandler);

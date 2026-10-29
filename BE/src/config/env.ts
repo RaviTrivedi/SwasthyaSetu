@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { loadEnvFile } from 'node:process';
 import { fileURLToPath } from 'node:url';
+import { z } from 'zod';
 
 const envPath = fileURLToPath(new URL('../../.env', import.meta.url));
 if (existsSync(envPath)) {
@@ -19,6 +20,24 @@ if (!/^\d+$/.test(rawPort) || !Number.isInteger(port) || port < 1 || port > 6553
 }
 
 export const env = Object.freeze({ nodeEnv, port });
+
+export function passwordResetDeliveryConfig(source: NodeJS.ProcessEnv = process.env) {
+  const mode = source.PASSWORD_RESET_DELIVERY ?? (source.NODE_ENV === 'development' || !source.NODE_ENV ? 'development-file' : 'resend');
+  if (mode === 'development-file') {
+    if ((source.NODE_ENV ?? 'development') !== 'development') throw new Error('Development file delivery is only allowed in development.');
+    return { mode } as const;
+  }
+  if (mode !== 'resend') throw new Error('PASSWORD_RESET_DELIVERY must be resend or development-file.');
+  const apiKey = source.RESEND_API_KEY;
+  if (!apiKey || !/^re_[A-Za-z0-9_-]+$/.test(apiKey) || /placeholder|replace|example/i.test(apiKey)) {
+    throw new Error('RESEND_API_KEY must contain a valid Resend API key when Resend delivery is enabled.');
+  }
+  const from = source.PASSWORD_RESET_FROM;
+  if (!from || !z.email().safeParse(from).success || /@(resend\.dev|example\.(com|org|net|invalid))$/i.test(from)) {
+    throw new Error('PASSWORD_RESET_FROM must be an email address on your verified Resend sending domain.');
+  }
+  return { mode, apiKey, from } as const;
+}
 
 // Validate only when database functionality is requested, not on health startup.
 export function requireDatabaseUrl(): string {
