@@ -1,3 +1,4 @@
+import { API_ERROR_MESSAGES } from '../../constants/messages.js';
 import { hash } from '@node-rs/argon2';
 import { HttpError } from '../../errors/http-error.js';
 import * as userRepository from '../../repositories/user.repository.js';
@@ -7,13 +8,12 @@ interface UserRepository {
   findUserByEmail(email: string): Promise<Awaited<ReturnType<typeof userRepository.findUserByEmail>>>;
   createUser(input: Parameters<typeof userRepository.createUser>[0]): Promise<Awaited<ReturnType<typeof userRepository.createUser>>>;
 }
-const conflictMessage = 'Email is already registered';
 
 export function createRegisterPatient(repository: UserRepository = userRepository) {
   return async (input: RegisterInput) => {
     const email = input.email.trim().toLowerCase();
     if (await repository.findUserByEmail(email)) {
-      throw new HttpError(409, conflictMessage);
+      throw new HttpError(409, API_ERROR_MESSAGES.EMAIL_ALREADY_REGISTERED);
     }
 
     const passwordHash = await hash(input.password, {
@@ -32,7 +32,7 @@ export function createRegisterPatient(repository: UserRepository = userRepositor
     } catch (error) {
       // The unique constraint also covers concurrent registrations after lookup.
       if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2002') {
-        throw new HttpError(409, conflictMessage);
+        throw new HttpError(409, API_ERROR_MESSAGES.EMAIL_ALREADY_REGISTERED);
       }
       throw error;
     }

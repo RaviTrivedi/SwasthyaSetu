@@ -1,3 +1,4 @@
+import { API_ERROR_MESSAGES } from '../../constants/messages.js';
 import { createHash, randomBytes } from 'node:crypto';
 import { SignJWT } from 'jose';
 import { sessionConfig } from '../../config/session.js';
@@ -15,7 +16,7 @@ export function createRefreshSession(
 ) {
   return async (presentedToken: string | undefined) => {
     if (!presentedToken || !/^[A-Za-z0-9_-]{43}$/.test(presentedToken)) {
-      throw new HttpError(401, 'Invalid refresh token');
+      throw new HttpError(401, API_ERROR_MESSAGES.INVALID_REFRESH_TOKEN);
     }
     const settings = config();
     const refreshToken = randomBytes(32).toString('base64url');
@@ -28,7 +29,7 @@ export function createRefreshSession(
     });
     if (result.status !== 'rotated') {
       if (result.status === 'replay') recordReplay(result.sessionId);
-      throw new HttpError(401, 'Invalid refresh token');
+      throw new HttpError(401, API_ERROR_MESSAGES.INVALID_REFRESH_TOKEN);
     }
     const accessToken = await new SignJWT({ role: result.user.role })
       .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })

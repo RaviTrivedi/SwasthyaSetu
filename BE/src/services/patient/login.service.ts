@@ -1,3 +1,4 @@
+import { API_ERROR_MESSAGES } from '../../constants/messages.js';
 import { randomBytes } from 'node:crypto';
 import { hash, verify } from '@node-rs/argon2';
 import { HttpError } from '../../errors/http-error.js';
@@ -18,14 +19,17 @@ function getDummyHash(): Promise<string> {
 }
 
 export function createLoginPatient(repository: UserRepository = userRepository) {
+  // Injecting the repository lets tests replace database access. The controller calls this function.
   return async (input: LoginInput) => {
+    // Fetch through the repository, then verify the password against the stored Argon2 hash.
     const user = await repository.findUserByEmail(input.email.trim().toLowerCase());
     const passwordHash = user?.passwordHash ?? await getDummyHash();
     const valid = await verify(passwordHash, input.password);
     if (!user || !valid) {
-      throw new HttpError(401, 'Invalid email or password');
+      throw new HttpError(401, API_ERROR_MESSAGES.INVALID_CREDENTIALS);
     }
 
+    // Return only public fields to the controller; the password hash stays inside this layer.
     return {
       id: user.id,
       firstName: user.firstName,

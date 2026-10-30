@@ -64,7 +64,9 @@ or `curl http://localhost:4000/api/v1/health` elsewhere.
 
 `src/app.ts` configures Express without opening a port. `src/server.ts` loads
 validated configuration and starts the server. `src/config/env.ts` handles
-environment loading and validation. `src/routes/index.ts` mounts versioned
+environment loading and general validation. Email delivery mode, Resend API key,
+and sender validation live in `src/config/password-reset-delivery.ts`.
+`src/routes/index.ts` mounts versioned
 routes, with the health endpoint in `src/routes/health.routes.ts`.
 
 The architecture uses layers, with role-based grouping inside each layer when
@@ -320,7 +322,14 @@ permissions where supported, and messages must not be committed or shared. Remov
 expired development messages locally when no longer needed. The frontend reset
 page is not implemented by this backend change.
 
-Production/test modes cannot use the file delivery adapter. To enable real email:
+Production/test modes cannot use the file delivery adapter. For local email testing,
+set `NODE_ENV=development`, `PASSWORD_RESET_DELIVERY=resend`, and
+`PASSWORD_RESET_FROM=onboarding@resend.dev`, with a valid Resend API key.
+The shared sender can deliver to the email address associated with your Resend account;
+register that same email in this application before requesting a reset. This sender
+is rejected outside development. Restart the backend after editing `.env`.
+
+To enable production email:
 
 1. Add a sending domain in the Resend dashboard, publish its required DNS records,
    and wait for verification. Use a sender address on that verified domain, not
@@ -374,3 +383,21 @@ token invalidation and log redaction as well as the existing reset behavior.
 `npm run test:password-reset:db` tests real concurrent consumption, password updates,
 token invalidation, and session revocation on loopback development PostgreSQL and
 cleans up only its own UUID-owned fixtures. No social login or phone OTP is added.
+
+## Current user profile
+
+GET /api/v1/auth/me requires Authorization: Bearer <accessToken> and returns
+200 with { user: { id, firstName, email, role, createdAt } } from PostgreSQL.
+The verified authentication context supplies the user ID; query/body identity
+values are ignored. Missing/invalid tokens, deleted users, and users with a
+non-null disabledAt receive 401 { "message": "Unauthorized" }.
+The response is non-cacheable and creates no tokens, cookies, or session updates.
+
+Apply the additive 20261030000000_user_disabled_at migration to the approved
+target database before deploying this endpoint. It adds nullable User.disabledAt;
+existing users remain enabled. This endpoint checks that field; it does not
+introduce an account-management API or alter login/refresh behavior.
+
+The me tests run with npm test using real JWT verification and mocked repository
+access; they do not query or modify PostgreSQL.
+

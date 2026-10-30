@@ -1,3 +1,4 @@
+import { API_SUCCESS_MESSAGES } from '../../constants/messages.js';
 import type { RequestHandler } from "express";
 import { browserConfig } from "../../config/session.js";
 import {
@@ -17,6 +18,6 @@ export function createLogoutController(
     // Clear even on persistence errors, but let the centralized handler report failure.
     res.clearCookie(refreshCookieName, options);
     await logout(readRefreshCookie(req.get("cookie")));
-    res.status(200).json({ message: "Logged out" });
+    res.status(200).json({ message: API_SUCCESS_MESSAGES.LOGGED_OUT });
   };
 }

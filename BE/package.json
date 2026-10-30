@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "nodemon --watch src --ext ts,json --exec tsx src/server.ts",
     "typecheck": "prisma generate && tsc --noEmit && tsc -p tsconfig.test.json",
-    "test": "node --import tsx --test tests/register.test.ts tests/login.test.ts tests/refresh.test.ts tests/logout.test.ts tests/logout-all.test.ts tests/password-reset.test.ts tests/resend.test.ts",
+    "test": "node --import tsx --test tests/register.test.ts tests/login.test.ts tests/refresh.test.ts tests/logout.test.ts tests/logout-all.test.ts tests/password-reset.test.ts tests/resend.test.ts tests/me.test.ts",
     "test:password-reset:db": "node --import tsx --test tests/password-reset.database.test.ts",
     "test:logout-all:db": "node --import tsx --test tests/logout-all.database.test.ts",
     "test:logout:db": "node --import tsx --test tests/logout.database.test.ts",

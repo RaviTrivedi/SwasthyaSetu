@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
 import { test } from 'node:test';
 import { Resend } from 'resend';
-import { passwordResetDeliveryConfig } from '../src/config/env.js';
+import { passwordResetDeliveryConfig } from '../src/config/password-reset-delivery.js';
 import { createPasswordResetDelivery } from '../src/services/password-reset-delivery.js';
 import { createPasswordReset } from '../src/services/patient/password-reset.service.js';
 
@@ -76,5 +76,8 @@ test('Resend configuration rejects missing credentials, placeholders and unsafe 
     { PASSWORD_RESET_DELIVERY: 'development-file' }, { PASSWORD_RESET_DELIVERY: 'unknown' },
   ]) assert.throws(() => passwordResetDeliveryConfig({ ...source, ...overrides }));
   assert.equal(passwordResetDeliveryConfig(source).mode, 'resend');
+  assert.equal(passwordResetDeliveryConfig({ ...source, NODE_ENV: 'development', PASSWORD_RESET_FROM: 'onboarding@resend.dev' }).mode, 'resend');
+  assert.throws(() => passwordResetDeliveryConfig({ ...source, NODE_ENV: 'test', PASSWORD_RESET_FROM: 'onboarding@resend.dev' }));
+  assert.throws(() => passwordResetDeliveryConfig({ ...source, NODE_ENV: 'development', PASSWORD_RESET_FROM: 'other@resend.dev' }));
   assert.equal(passwordResetDeliveryConfig({ NODE_ENV: 'development', PASSWORD_RESET_DELIVERY: 'development-file' }).mode, 'development-file');
 });

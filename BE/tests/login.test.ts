@@ -22,7 +22,7 @@ const setup = createRegisterPatient({
   async createUser(input) {
     storedUser = {
       ...input, id: '621f8031-73b9-4f15-b79e-5f726c9dbdd2', role: 'PATIENT',
-      createdAt: new Date('2026-01-01T00:00:00Z'), updatedAt: new Date('2026-01-01T00:00:00Z'),
+      createdAt: new Date('2026-01-01T00:00:00Z'), updatedAt: new Date('2026-01-01T00:00:00Z'), disabledAt: null,
     };
     return storedUser;
   },

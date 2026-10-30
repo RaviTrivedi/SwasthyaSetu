@@ -1,3 +1,4 @@
+import { API_SUCCESS_MESSAGES } from '../../constants/messages.js';
 import type { RequestHandler } from 'express';
 import { browserConfig } from '../../config/session.js';
 import { refreshCookieName, refreshCookieOptions } from '../../config/refresh-cookie.js';
@@ -11,6 +12,6 @@ export function createLogoutAllController(logout: LogoutAll, config = browserCon
     await logout(userId);
     res.clearCookie(refreshCookieName, options);
     res.set('Cache-Control', 'no-store');
-    res.status(200).json({ message: 'Logged out from all devices' });
+    res.status(200).json({ message: API_SUCCESS_MESSAGES.LOGGED_OUT_ALL });
   };
 }
