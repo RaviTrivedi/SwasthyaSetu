@@ -1,3 +1,4 @@
+import { accessCookieName, accessCookieOptions } from '../../config/access-cookie.js';
 import { API_ERROR_MESSAGES, API_SUCCESS_MESSAGES } from '../../constants/messages.js';
 import type { RequestHandler } from "express";
 import { HttpError } from "../../errors/http-error.js";
@@ -35,6 +36,7 @@ export function createResetConfirmController(
     const cookieOptions = refreshCookieOptions(browserConfig());
     await service.confirm(parsed.data.token, parsed.data.newPassword);
     res.clearCookie(refreshCookieName, cookieOptions);
+    res.clearCookie(accessCookieName, accessCookieOptions(browserConfig()));
     res
       .status(200)
       .json({ message: API_SUCCESS_MESSAGES.PASSWORD_RESET_COMPLETE });

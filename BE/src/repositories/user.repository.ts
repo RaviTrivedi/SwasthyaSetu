@@ -1,39 +1,19 @@
-import { getDatabase } from "../config/database.js";
-import { Role } from "../constants/roles.js";
+import { getDatabase } from '../config/database.js';
+import { Role } from '../constants/roles.js';
 
-function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase();
+export async function createUser(input: { firstName: string; email: string; passwordHash: string }) {
+  const user = await getDatabase().user.create({ data: { ...input, email: input.email.trim().toLowerCase(),
+    role: { connect: { name: Role.PATIENT } } }, include: { role: true } });
+  const { roleId: _roleId, ...identity } = user; return { ...identity, role: user.role.name };
 }
-
-// Shared user persistence;
-// request validation and password hashing belong above it.
-export function createUser(input: {
-  firstName: string;
-  email: string;
-  passwordHash: string;
-}) {
-  return getDatabase().user.create({
-    data: {
-      firstName: input.firstName,
-      email: normalizeEmail(input.email),
-      passwordHash: input.passwordHash,
-      role: Role.PATIENT,
-    },
-  });
+export async function findUserByEmail(email: string) {
+  const user = await getDatabase().user.findUnique({ where: { email: email.trim().toLowerCase() }, include: { role: true } });
+  if (!user) return null; const { roleId: _roleId, ...identity } = user; return { ...identity, role: user.role.name };
 }
-
-export function findUserByEmail(email: string) {
-  // Prisma handles the database query when awaited by the service; no match resolves to null.
-  // This internal record includes passwordHash for verification, so never send it directly to clients.
-  return getDatabase().user.findUnique({
-    where: { email: normalizeEmail(email) },
-  });
-}
-
-export function findUserProfileById(id: string) {
-  return getDatabase().user.findUnique({
-    where: { id },
-    select: { id: true, firstName: true, email: true, role: true, createdAt: true, disabledAt: true },
-  });
+export async function findUserProfileById(id: string) {
+  const user = await getDatabase().user.findUnique({ where: { id }, select: {
+    id: true, firstName: true, email: true, role: { select: { name: true } }, createdAt: true, disabledAt: true,
+  } });
+  return user ? { ...user, role: user.role.name } : null;
 }
 

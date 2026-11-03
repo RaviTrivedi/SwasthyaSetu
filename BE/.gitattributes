@@ -1,0 +1,2 @@
+# Applied migration files retain exact bytes so their recorded checksums stay stable.
+prisma/migrations/**/migration.sql -text

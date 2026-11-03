@@ -30,3 +30,4 @@ export function consumeResetToken(tokenHash: string, passwordHash: string) {
     return true;
   });
 }
+

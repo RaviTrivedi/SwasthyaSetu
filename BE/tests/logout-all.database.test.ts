@@ -1,3 +1,4 @@
+import { createAccountFixture } from './account-fixture.js';
 import assert from 'node:assert/strict';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { test } from 'node:test';
@@ -11,7 +12,7 @@ test('logout-all revokes all active sessions for one user only', async () => {
   const db = getDatabase();
   const ids = [randomUUID(), randomUUID()];
   try {
-    for (const id of ids) await db.user.create({ data: { id, firstName: 'Logout-all test', email: `${id}@example.invalid`, passwordHash: 'non-login-test-fixture' } });
+    for (const id of ids) await createAccountFixture({ id, firstName: 'Logout-all test', email: `${id}@example.invalid`, passwordHash: 'non-login-test-fixture' });
     const make = (userId: string, expiresAt = new Date(Date.now() + 86400000), revokedAt: Date | null = null) =>
       db.session.create({ data: { userId, tokenHash: randomBytes(32).toString('hex'), expiresAt, revokedAt } });
     const first = await make(ids[0]!);
@@ -30,3 +31,5 @@ test('logout-all revokes all active sessions for one user only', async () => {
     await disconnectDatabase();
   }
 });
+
+

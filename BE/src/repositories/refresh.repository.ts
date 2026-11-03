@@ -1,3 +1,4 @@
+
 import { getDatabase } from '../config/database.js';
 
 export function rotateSession(input: { tokenHash: string; nextTokenHash: string; expiresAt: Date }) {
@@ -13,8 +14,10 @@ export function rotateSession(input: { tokenHash: string; nextTokenHash: string;
     if (!id) return { status: 'invalid' } as const;
     const session = await tx.session.findUniqueOrThrow({
       where: { id },
-      include: { user: { select: { id: true, firstName: true, email: true, role: true, createdAt: true } } },
+      include: { user: { include: { role: true } } },
     });
+    const account = { ...session.user, role: session.user.role.name };
+    if (!account || account.disabledAt) return { status: 'invalid' } as const;
     const now = new Date();
     if (session.revokedAt || session.consumedTokenHashes.includes(input.tokenHash)) {
       await tx.session.update({ where: { id }, data: { revokedAt: session.revokedAt ?? now } });
@@ -27,6 +30,7 @@ export function rotateSession(input: { tokenHash: string; nextTokenHash: string;
       consumedTokenHashes: { push: input.tokenHash },
       expiresAt: input.expiresAt,
     } });
-    return { status: 'rotated', user: session.user } as const;
+    return { status: 'rotated', user: { id: account.id, firstName: account.firstName, email: account.email, role: account.role, createdAt: account.createdAt } } as const;
   });
 }
+

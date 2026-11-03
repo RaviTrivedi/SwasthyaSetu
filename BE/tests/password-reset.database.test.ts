@@ -1,3 +1,4 @@
+import { createAccountFixture } from './account-fixture.js';
 import assert from 'node:assert/strict';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { test } from 'node:test';
@@ -12,7 +13,7 @@ test('reset is single-use under concurrency and atomically updates password and 
   const db = getDatabase();
   const ids = [randomUUID(), randomUUID()];
   try {
-    for (const id of ids) await db.user.create({ data: { id, firstName: 'Reset test', email: `${id}@example.invalid`, passwordHash: 'non-login-test-fixture' } });
+    for (const id of ids) await createAccountFixture({ id, firstName: 'Reset test', email: `${id}@example.invalid`, passwordHash: 'non-login-test-fixture' });
     for (const userId of [ids[0]!, ids[0]!, ids[1]!]) await db.session.create({ data: { userId, tokenHash: randomBytes(32).toString('hex'), expiresAt: new Date(Date.now() + 86400000) } });
     const tokenHash = randomBytes(32).toString('hex');
     const record = await db.passwordResetToken.create({ data: { userId: ids[0]!, tokenHash, expiresAt: new Date(Date.now() + 60000) } });
@@ -22,8 +23,8 @@ test('reset is single-use under concurrency and atomically updates password and 
     assert.deepEqual(results.sort(), [false, true]);
     const user = await db.user.findUniqueOrThrow({ where: { id: ids[0]! } });
     assert.equal(await verify(user.passwordHash, 'new test password'), true);
-    assert.equal(user.email, `${ids[0]}@example.invalid`);
-    assert.equal(user.role, 'PATIENT');
+    assert.equal((await db.user.findUniqueOrThrow({ where: { id: user.id } })).email, `${ids[0]}@example.invalid`);
+    assert.equal(user.roleId, 1);
     assert.ok((await db.passwordResetToken.findUniqueOrThrow({ where: { id: record.id } })).usedAt);
     assert.ok((await db.passwordResetToken.findUniqueOrThrow({ where: { id: extra.id } })).revokedAt);
     assert.equal(await db.session.count({ where: { userId: ids[0]!, revokedAt: null } }), 0);
@@ -38,3 +39,5 @@ test('reset is single-use under concurrency and atomically updates password and 
     await disconnectDatabase();
   }
 });
+
+

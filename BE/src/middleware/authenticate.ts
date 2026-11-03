@@ -1,14 +1,18 @@
-import { API_ERROR_MESSAGES, INTERNAL_ERROR_MESSAGES } from '../constants/messages.js';
+import {
+  API_ERROR_MESSAGES,
+  INTERNAL_ERROR_MESSAGES,
+} from "../constants/messages.js";
 import type { RequestHandler, Response } from "express";
 import { jwtVerify } from "jose";
 import { z } from "zod";
 import { sessionConfig } from "../config/session.js";
 import { HttpError } from "../errors/http-error.js";
-import { Role } from "../constants/roles.js";
+import type { Role } from "../constants/roles.js";
+import { readAccessCookie } from "../config/access-cookie.js";
 
 const claimsSchema = z.object({
   sub: z.uuid(),
-  role: z.enum(Role),
+  role: z.string().min(1).max(50),
   iat: z.number().int(),
   exp: z.number().int(),
 });
@@ -30,12 +34,17 @@ export function createAuthenticate(config = sessionConfig): RequestHandler {
   return async (req, res, next) => {
     res.set("Cache-Control", "no-store");
     const match = /^Bearer ([^\s]+)$/i.exec(req.get("authorization") ?? "");
-    if (!match) throw new HttpError(401, API_ERROR_MESSAGES.UNAUTHORIZED);
+    // Explicit Authorization takes precedence and never falls back after failure.
+    const token =
+      req.get("authorization") !== undefined
+        ? match?.[1]
+        : readAccessCookie(req.get("cookie"));
+    if (!token) throw new HttpError(401, API_ERROR_MESSAGES.UNAUTHORIZED);
     const settings = config();
     try {
       // await pauses this handler until verification finishes. No controller runs
       // yet. Invalid/expired signatures throw and become a generic 401 below.
-      const { payload } = await jwtVerify(match[1]!, settings.signingKey, {
+      const { payload } = await jwtVerify(token, settings.signingKey, {
         algorithms: ["HS256"],
         typ: "JWT",
         requiredClaims: ["sub", "role", "iat", "exp"],

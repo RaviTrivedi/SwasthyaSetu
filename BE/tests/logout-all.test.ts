@@ -36,7 +36,7 @@ async function fixture(production = false, fail = false) {
   return { userId, issued, calls, settings,
     post(authorization?: string) {
       return fetch(`http://127.0.0.1:${(server.address() as AddressInfo).port}/logout-all?userId=attacker`, {
-        method: 'POST', headers: { ...(authorization ? { Authorization: authorization } : {}), 'Content-Type': 'application/json', Cookie: 'refresh_token=not-an-access-token' },
+        method: 'POST', headers: { 'X-CSRF-Protection': '1', ...(authorization ? { Authorization: authorization } : {}), 'Content-Type': 'application/json', Cookie: 'refresh_token=not-an-access-token' },
         body: JSON.stringify({ userId: 'attacker', sessionId: 'attacker', role: 'ADMIN' }),
       });
     },
@@ -76,7 +76,7 @@ test('missing, malformed, expired, forged and invalid-claim tokens are rejected 
     const tokens = [
       await sign(valid, randomBytes(32)),
       await sign({ ...valid, iat: now - 1000, exp: now - 100 }),
-      await sign({ ...valid, role: 'ADMIN' }),
+      await sign({ ...valid, role: '' }),
       await sign({ ...valid, sub: 'not-a-user-id' }),
       await sign({ sub: f.userId, role: 'PATIENT', iat: now }),
       await sign({ ...valid, iat: now + 60, exp: now + 960 }),
@@ -106,7 +106,7 @@ test('application logout-all route requires authentication', async () => {
   const server = app.listen(0, '127.0.0.1');
   await once(server, 'listening');
   try {
-    const response = await fetch(`http://127.0.0.1:${(server.address() as AddressInfo).port}/api/v1/auth/logout-all`, { method: 'POST' });
+    const response = await fetch(`http://127.0.0.1:${(server.address() as AddressInfo).port}/api/v1/auth/logout-all`, { method: 'POST', headers: { 'X-CSRF-Protection': '1' } });
     assert.equal(response.status, 401);
     assert.deepEqual(await response.json(), { message: 'Unauthorized' });
   } finally { await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())); }

@@ -9,8 +9,12 @@ datasource db {
   provider = "postgresql"
 }
 
-enum Role {
-  PATIENT
+model Role {
+  id Int @id @default(autoincrement())
+  name String @unique @db.VarChar(50)
+  users User[]
+
+  @@map("roles")
 }
 
 model User {
@@ -18,12 +22,84 @@ model User {
   firstName    String   @db.VarChar(100)
   email        String   @unique @db.VarChar(254)
   disabledAt   DateTime? @db.Timestamptz(3)
-  passwordHash String
-  role         Role     @default(PATIENT)
   createdAt    DateTime @default(now()) @db.Timestamptz(3)
   updatedAt    DateTime @updatedAt @db.Timestamptz(3)
   sessions     Session[]
   passwordResetTokens PasswordResetToken[]
+  facilityApplications FacilityApplication[] @relation("Applicant")
+  reviewedApplications FacilityApplication[] @relation("Reviewer")
+  applicationReopenings FacilityApplicationReopening[]
+  passwordHash String
+  roleId Int @default(1)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Restrict)
+}
+
+enum FacilityType {
+  CLINIC
+  HOSPITAL
+}
+
+enum FacilityApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model FacilityApplication {
+  id                String @id @default(uuid()) @db.Uuid
+  applicantId       String @db.Uuid
+  applicant         User @relation("Applicant", fields: [applicantId], references: [id], onDelete: Restrict)
+  reviewedByAdminId  String? @db.Uuid
+  reviewedByAdmin    User? @relation("Reviewer", fields: [reviewedByAdminId], references: [id], onDelete: Restrict)
+  reviewedAt        DateTime? @db.Timestamptz(3)
+  rejectionReason   String? @db.VarChar(2000)
+  facilityName      String @db.VarChar(200)
+  facilityType      FacilityType
+  contactPersonName String @db.VarChar(100)
+  contactEmail      String @db.VarChar(254)
+  contactPhone      String @db.VarChar(16)
+  address           String @db.VarChar(500)
+  city              String @db.VarChar(100)
+  description       String? @db.VarChar(2000)
+  services          String[]
+  status            FacilityApplicationStatus @default(PENDING)
+  createdAt         DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime @updatedAt @db.Timestamptz(3)
+  reopenings        FacilityApplicationReopening[]
+  facility          Facility?
+
+  @@index([applicantId])
+}
+
+model Facility {
+  id String @id @default(uuid()) @db.Uuid
+  applicationId String @unique @db.Uuid
+  application FacilityApplication @relation(fields: [applicationId], references: [id], onDelete: Restrict)
+  facilityName String @db.VarChar(200)
+  facilityType FacilityType
+  contactPersonName String @db.VarChar(100)
+  contactEmail String @db.VarChar(254)
+  contactPhone String @db.VarChar(16)
+  address String @db.VarChar(500)
+  city String @db.VarChar(100)
+  description String? @db.VarChar(2000)
+  services String[]
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+}
+
+model FacilityApplicationReopening {
+  id String @id @default(uuid()) @db.Uuid
+  applicationId String @db.Uuid
+  application FacilityApplication @relation(fields: [applicationId], references: [id], onDelete: Restrict)
+  reopenedByAdminId String @db.Uuid
+  reopenedByAdmin User @relation(fields: [reopenedByAdminId], references: [id], onDelete: Restrict)
+  reopenedAt DateTime @default(now()) @db.Timestamptz(3)
+  previousReviewedByAdminId String? @db.Uuid
+  previousReviewedAt DateTime? @db.Timestamptz(3)
+  previousRejectionReason String? @db.VarChar(2000)
+
+  @@index([applicationId])
 }
 
 model PasswordResetToken {
@@ -55,3 +131,7 @@ model Session {
   @@index([expiresAt])
   @@index([consumedTokenHashes], type: Gin)
 }
+
+
+
+

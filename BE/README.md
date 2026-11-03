@@ -103,7 +103,7 @@ by that check. For a new database, only after
 explicitly approving the target database, apply it from `BE/` with
 `npx prisma migrate deploy`. Do not use reset or schema push to apply this migration.
 
-The `User` model contains UUID id, firstName, unique email, passwordHash, PATIENT
+The account and credential models collectively contain UUID id, firstName, unique email, passwordHash, PATIENT
 role, and createdAt/updatedAt timestamps. Prisma supplies UUIDs and updatedAt on
 client writes. The repository trims and lowercases emails for writes and lookups;
 the database unique constraint protects normalized emails against duplicates.
@@ -169,7 +169,7 @@ hash. Unknown email and incorrect password both return HTTP 401 with
 `{"message":"Invalid email or password"}`. Unknown accounts still perform Argon2
 verification against a cached dummy hash to avoid a cheap early return.
 
-Valid credentials return HTTP 200 with `{ user, accessToken }`; `user` contains only
+Valid credentials return HTTP 200 with `{ user }`; `user` contains only
 `id`, `firstName`, `email`, `role`, and `createdAt`. Passwords and hashes are never
 returned or logged. JSON parsing errors,
 the 16 KiB body limit, and unexpected errors use the existing centralized handler.
@@ -220,7 +220,7 @@ Send `POST /api/v1/auth/refresh` with `credentials: 'include'`. Only the configu
 credentials, and body user IDs/roles are ignored. No request body is required.
 The existing origin allowlist remains in force.
 
-Success returns HTTP 200 with only `{ accessToken }`, `Cache-Control: no-store`,
+Success returns HTTP 200 with `{ message: "Session refreshed" }`, `Cache-Control: no-store`,
 and a rotated refresh cookie using the same HttpOnly, Secure, SameSite, host-only,
 and `/api/v1/auth` path policy as login. Refresh expiry slides to 30 days from each
 successful rotation; the access JWT lasts 15 minutes with only sub, role, iat, exp.
@@ -386,7 +386,7 @@ cleans up only its own UUID-owned fixtures. No social login or phone OTP is adde
 
 ## Current user profile
 
-GET /api/v1/auth/me requires Authorization: Bearer <accessToken> and returns
+GET /api/v1/auth/me requires the access-token cookie or Authorization: Bearer <accessToken> and returns
 200 with { user: { id, firstName, email, role, createdAt } } from PostgreSQL.
 The verified authentication context supplies the user ID; query/body identity
 values are ignored. Missing/invalid tokens, deleted users, and users with a
@@ -401,3 +401,330 @@ introduce an account-management API or alter login/refresh behavior.
 The me tests run with npm test using real JWT verification and mocked repository
 access; they do not query or modify PostgreSQL.
 
+
+## Facility application submission
+
+`POST /api/v1/facilities/applications` requires the access-token cookie or `Authorization: Bearer <accessToken>`.
+The existing authentication middleware verifies the token; applicant identity comes
+only from that verified context. No new roles or email verification are required.
+
+Example JSON body:
+
+```json
+{
+  "facilityName": "Community Clinic",
+  "facilityType": "CLINIC",
+  "contactPersonName": "Application Contact",
+  "contactEmail": "contact@example.com",
+  "contactPhone": "+919876543210",
+  "address": "10 Main Road",
+  "city": "Pune",
+  "services": ["General consultation"]
+}
+```
+
+Strings are trimmed; contactEmail is lowercased. Limits: facilityName 1�200,
+contactPersonName/city 1�100, address 1�500, email at most 254 characters.
+facilityType must be CLINIC or HOSPITAL. Phone uses international format: `+`
+followed by 8�15 digits, starting with a nonzero digit. No existing phone validator
+was present, so this uses Zod like the other request schemas. This checks format,
+not ownership or whether a number is assigned. Optional description is at most
+2000 characters. services requires 1�50 nonempty names of at most 100 characters.
+The JSON body limit is 16 KiB. Unknown fields, including applicantId, userId,
+status, approval fields, facilityId and documents, are rejected.
+
+Returns 201 with the application fields plus id, applicantId, server-assigned
+PENDING status, createdAt and updatedAt; omitted description returns null.
+No user relation, password hash or session data is returned. Invalid fields return
+400, missing/invalid authentication returns 401, oversized JSON returns 413,
+and unexpected failures use the existing sanitized 500 response. Repeated valid
+submissions create separate applications; no duplicate or approval policy is added.
+
+Facility submission files live in the routes/controllers/services/validation
+clinic folders. This grouping does not restrict submission by role. Shared persistence lives in facility-application.repository.ts.
+The FacilityApplication model references User and restricts deletion of an applicant
+while applications exist. No facility, review, upload, or document-storage models
+or endpoints are included.
+
+Migration: `20261030010000_facility_application` is additive and has not been
+applied by this change. Following the existing explicit target-approval workflow,
+review the configured local database and pending migrations before running from BE:
+
+```sh
+npx prisma migrate status
+npx prisma migrate deploy
+```
+
+Do not use reset or schema push. Deploy applies all pending migrations, including
+`20261030000000_user_disabled_at` if it is still pending. Apply migrations before
+calling the new endpoint. Prisma Client generation alone does not create tables.
+
+`npm test` includes facility submission tests with mocked persistence and signed
+access tokens: normalization, invalid fields, authentication, ownership/status,
+safe responses and sanitized errors. No database integration fixture is added.
+
+## Admin facility application review
+
+The admin category provides these authenticated endpoints:
+
+- `GET /api/v1/admin/facility-applications?page=1&pageSize=20&status=PENDING`
+  returns `{ items, total, page, pageSize }`. Status is optional and accepts
+  PENDING, APPROVED or REJECTED. Page is 1-100000 and pageSize is 1-100.
+  Results sort by createdAt descending, then ID descending. Unknown query fields
+  and malformed pagination return 400.
+- `GET /api/v1/admin/facility-applications/:applicationId` returns one application.
+- `PATCH /api/v1/admin/facility-applications/:applicationId/status` accepts
+  `{ "status": "APPROVED" }` or
+  `{ "status": "REJECTED", "rejectionReason": "Missing required information" }`.
+  It replaces the separate approve/reject URLs and returns the reviewed application.
+  Only these two target statuses are accepted; the rejection reason is trimmed
+  and must contain 1-2000 characters. Unknown body fields are rejected.
+
+All endpoints verify the access cookie or Bearer token and require ADMIN, then check the
+current database user is still an enabled ADMIN. A missing/invalid token returns
+401; a non-admin, demoted, deleted or disabled account returns 403. Public
+registration still assigns PATIENT; no public admin provisioning endpoint exists.
+A trusted operator must provision/promote an admin account outside these APIs,
+then sign in again to obtain an ADMIN token. No accounts are promoted by migration.
+
+Review responses select only application fields, review metadata, and applicant
+id, firstName and email. They contain no password hashes or session records.
+Unknown UUIDs return 404 `Not found`; malformed UUIDs return 400. Reviewing any
+non-PENDING application returns 409 `Facility application is no longer pending`.
+The repository transaction conditionally updates PENDING status, reviewer ID,
+review time and rejection reason together. Concurrent review attempts cannot both
+succeed. Approval creates no facility/workspace or staff records and sends no email.
+
+Migration `20261102000000_facility_application_review` adds ADMIN, APPROVED,
+REJECTED and nullable reviewedByAdminId/reviewedAt/rejectionReason fields, plus
+its reviewer foreign key. Existing application rows remain PENDING with null review
+metadata. The migration has not been applied by this implementation. Follow the
+existing target-approval workflow: inspect `npx prisma migrate status`, then apply
+`npx prisma migrate deploy` to the approved local database. This applies all pending
+migrations. No reset or schema push is needed. Generate the client with
+`npm run db:generate` and restart the API afterward.
+
+`npm test` covers authorization, listing/detail, review validation, unknown IDs,
+status conflicts and sanitized responses with mocked persistence. The separate
+`npm run test:admin-applications:db` checks real PostgreSQL concurrent reviews on
+loopback development databases after migrations; it creates and removes only its
+own UUID-owned fixtures. It is not part of the default test suite.
+
+## Platform admin provisioning and sign-in
+
+There is no public admin registration or promotion API. An authorized operator
+with database access can create a new admin using `npm run admin:provision` from
+BE/. This command is never run automatically during startup, install or migration.
+
+Before provisioning, approve the intended database target and apply pending
+migrations using the existing workflow (`npx prisma migrate status`, then
+`npx prisma migrate deploy`). ADMIN already exists in the review migration;
+this feature adds no schema migration. Run `npm run db:generate` if needed.
+
+Supply these values privately through the command's environment or local ignored
+BE/.env file (do not place passwords in command arguments or shell history):
+
+- ADMIN_EMAIL: valid email, trimmed/lowercased, at most 254 characters.
+- ADMIN_PASSWORD: 12-128 characters, preserved exactly; use a unique random password.
+- ADMIN_FIRST_NAME: optional, trimmed 1-100 characters; defaults to Platform Admin.
+- DATABASE_URL: intended PostgreSQL database.
+
+Run `npm run admin:provision`, then remove the provisioning credentials from your
+environment/.env. The command uses the registration Argon2id parameters and assigns
+ADMIN internally. It creates no sessions and prints no account details or secrets.
+An existing email (including an existing admin) causes a safe error and nonzero exit;
+no password or role is changed. Unique-constraint races also fail safely. This is
+repeat-safe creation, not an upsert or promotion workflow.
+
+`POST /api/v1/admin/auth/login` accepts exactly `{ "email": "...", "password": "..." }`
+using the existing login validation. Only enabled ADMIN accounts can sign in here.
+Unknown email, incorrect password, disabled account and non-admin account all receive
+401 `Invalid email or password`. Invalid request shapes return 400.
+Success returns `{ user }` with safe user fields and sets a short-lived JWT in an HttpOnly cookie,
+and sets the existing HttpOnly refresh cookie. Browser clients use credentials:
+include and the same configured frontend origin/CORS settings as patient login.
+
+Use `POST /api/v1/auth/refresh` and `POST /api/v1/auth/logout` for this session;
+the cookie retains Path=/api/v1/auth. An admin-specific logout alias is unnecessary
+and would not receive that cookie in browsers. Logout revokes the current stored
+refresh session and clears the matching cookie; issued access JWTs retain their
+short expiry. Logging in replaces the browser's existing refresh cookie, since
+admin and patient sign-in use the same session mechanism, not separate cookie jars.
+
+Admin review routes still require verified ADMIN claims plus a current enabled
+ADMIN database user. Submission and patient route authorization is unchanged.
+The existing generic login endpoint retains its prior behavior. No real admin is
+provisioned by tests; npm test mocks persistence and email delivery.
+
+## Database-backed roles
+
+Roles now live in the `roles` table (Prisma model `Role`) with integer primary key
+`id` and unique `name`. `User.roleId` is a required foreign key; each account has one
+role. Current platform roles are PATIENT, ADMIN, DOCTOR, and STAFF. PATIENT is the
+default. Registration and admin provisioning explicitly connect by role name,
+never by a client-supplied roleId. Roles referenced by users cannot be deleted.
+
+The migration `20261102010000_roles_table` inserts the initial roles, maps each
+existing user's old enum value to roleId, enforces the foreign key, then removes
+the old role column and enum in one transaction. Existing user/account/session
+records remain. Back up the target before applying this schema conversion and
+stop the API during deployment because the old and new clients expect different
+column layouts. Following the existing approved-target workflow, run from BE:
+
+```sh
+npx prisma migrate status
+npx prisma migrate deploy
+npm run db:generate
+npm run build
+```
+
+Restart the API after migration. This migration is supplied but not applied by the
+implementation. Existing API user objects and access-token claims still contain
+role names such as ADMIN; repositories resolve the relation internally. Admin
+checks still require exactly ADMIN and recheck the current user in PostgreSQL.
+
+New role names can be added as rows without editing a PostgreSQL enum. Adding a
+role does not implement its permissions, routes, or a public role-assignment API.
+Current known names used by authorization remain in src/constants/roles.ts.
+All identities and credentials remain in User. Separate organization memberships and their permissions are future work.
+
+## Reopening rejected applications
+
+An enabled platform admin can use the existing status endpoint:
+
+```http
+PATCH /api/v1/admin/facility-applications/:applicationId/status
+Content-Type: application/json
+Authorization: Bearer <admin-access-token>
+
+{ "status": "PENDING" }
+```
+
+Only REJECTED applications can be reopened. PENDING or APPROVED applications
+return 409 `Only rejected applications can be reopened`; unknown IDs return 404.
+Extra fields (including reviewer IDs and rejectionReason) are rejected for this
+request. Approval and rejection still require a PENDING application.
+
+Reopening clears current reviewedByAdminId, reviewedAt and rejectionReason.
+Before committing, the same transaction appends a FacilityApplicationReopening
+record with the previous review fields and the verified reopening admin/time.
+Every reopening gets a separate record, retaining rejection history across repeated
+review cycles. Audit records are internal persistence; no audit-list API is added.
+Row locks and conditional updates prevent duplicate concurrent reopenings. An audit
+write failure rolls back the state change. Existing rejections need no backfill:
+their current review metadata is captured when first reopened.
+
+Apply migration `20261102020000_application_reopening` to the approved local target
+using the existing migration workflow before using this feature. It adds only the
+reopening audit table; no migration was applied during implementation. The separate
+`npm run test:admin-applications:db` includes concurrent reopening and audit checks
+and requires migrations first. Default HTTP tests use mocked persistence.
+
+## Browser authentication cookies (current contract)
+
+Login (patient and admin) now returns only `{ user }`; refresh returns
+`{ "message": "Session refreshed" }`. Neither response contains raw access or
+refresh tokens. Both credentials are HttpOnly, host-only cookies:
+
+| Cookie | Path | Lifetime |
+| --- | --- | --- |
+| access_token | /api/v1 | 15 minutes, matching the JWT expiry |
+| refresh_token | /api/v1/auth | 30 days, rotated on refresh |
+
+The refresh path is the narrowest common prefix for the existing refresh, logout
+and logout-all routes. It also covers other auth endpoints; those endpoints never
+use it as access authentication. Admin sign-in shares these cookies and uses the
+same refresh/logout endpoints. Logout, logout-all and successful password reset
+clear both cookies with matching paths/options. Session revocation semantics are
+unchanged: an already copied access JWT expires within 15 minutes.
+
+Authentication accepts the access cookie or an explicit Bearer header. A supplied
+Authorization header takes precedence; invalid headers never fall back to cookies.
+Postman can use its cookie jar after login; API responses no longer supply tokens
+for copying into Authorization headers.
+
+All state-changing requests (including login, refresh, logout and admin PATCH)
+require `X-CSRF-Protection: 1`. This is a non-simple header, not a secret token:
+HTML forms cannot set it, and cross-origin browsers must preflight. CORS allows
+credentials only from the configured exact FRONTEND_ORIGIN and permits the header
+and PATCH. Requests with an untrusted or null Origin are rejected; missing Origin
+is supported for CLI clients only with the custom header on unsafe methods.
+Do not bypass this middleware at a reverse proxy or allow arbitrary CORS origins.
+GET/HEAD must remain read-only. HttpOnly alone is not the CSRF defense.
+
+Local setup: FRONTEND_ORIGIN=http://localhost:3000, API_ORIGIN=http://localhost:4000,
+COOKIE_SECURE=false, COOKIE_SAME_SITE=lax. Set FE/.env.local
+`NEXT_PUBLIC_API_ORIGIN=http://localhost:4000`. Use the same hostname consistently.
+Production requires exact HTTPS origins and COOKIE_SECURE=true. Configure SameSite
+for the actual deployment: lax for same-site deployments, none with Secure for
+cross-site deployments. Browser third-party-cookie policies can still block
+cross-site cookies; same-site frontend/API deployment is preferred. Rebuild the
+frontend after changing NEXT_PUBLIC_API_ORIGIN.
+
+The frontend auth screen now calls Express, keeps only safe profile data in React
+state, and reloads it via /auth/me. No localStorage token reads/writes existed in
+the frontend, and none were added. Its shared JSON API client always includes
+credentials and the CSRF header, coalesces refresh requests, and retries a 401 once.
+Only protected requests whose authentication runs before side effects should use
+this retry behavior. Login/register/logout opt out; network errors and other HTTP
+failures are not retried. Web Locks coordinate tabs where supported; older browsers
+without Web Locks only coalesce within a tab, so avoid simultaneous refresh across
+tabs there. A failed refresh requires signing in again. No tokens reach JavaScript.
+
+Checks: `npm test` in BE includes cookie/CSRF tests. `npm run test:auth` in FE tests
+single refresh and bounded request retries with mocked fetch. No schema or database
+migration is required for this cookie change.
+
+## Approved facility profiles
+
+`GET /api/v1/facilities/me` returns the authenticated owner's single approved
+facility profile. `PATCH /api/v1/facilities/me` partially updates that profile.
+Use the access-token cookie (credentials included) or a valid Bearer token; PATCH
+also requires `X-CSRF-Protection: 1`. No clinic role is required: ownership comes
+only from the verified user ID and approved application in the database.
+
+PATCH accepts a nonempty subset of facilityName, facilityType, contactPersonName,
+contactEmail, contactPhone, address, city, description, services. The same trimming,
+email normalization, phone format and size limits as application submission apply.
+Services replace the complete array; empty descriptions can clear the description.
+Unknown fields, including IDs, status, applicant, owner and reviewer fields, are
+rejected. JSON limit is 16 KiB. The response is the safe profile object with id,
+public editable fields and timestamps, without applicant/reviewer data or secrets.
+
+No approved application, a missing profile, a disabled owner, or an application
+owned by another user results in 404 `No approved facility profile found`.
+Multiple approved applications for one user return 409 rather than choosing one.
+Invalid fields return 400; serialization conflicts return a safe retryable 409.
+Profile edits never overwrite the submitted/reviewed application snapshot.
+
+The Facility model has a unique applicationId relation. Approval no longer creates a profile. POST /api/v1/facilities/me explicitly creates it using the full application public fields (description optional), authentication, and X-CSRF-Protection: 1. It returns 201, or 409 if a profile already exists. It never creates staff accounts or changes roles. GET and PATCH do not create profiles.
+Migration `20261103000000_facility_profile` creates the table and copies existing
+APPROVED applications into profiles (using their UUIDs as the initial profile IDs).
+No other business models or upload storage are introduced.
+
+The migration has NOT been applied by this implementation. After approving the
+configured local target, run `npm run db:migrate`, then `npm run db:generate` and
+restart/rebuild the API. Migration deploy applies all pending migrations. Until
+this migration is applied, profile calls and new approvals require the missing
+table and will fail; generating the Prisma client alone does not create it.
+
+`npm test` includes authenticated HTTP profile tests and repository query guard
+checks with mocked persistence. Database integration tests remain separate and
+require an approved migrated local database.
+
+
+
+## Reversing the account registry migration
+
+`20261103010000_account_registry` is retained unchanged because it was applied to
+local development. `20261103030000_restore_shared_user` reverses that split in one
+transaction: credentials and roles are copied back to the shared identity table,
+then the temporary Account/Admin/FacilityStaff layout is removed. User IDs, password
+hashes, emails, sessions, reset tokens and application relationships are preserved.
+The existing unique User.email constraint remains; application logic normalizes emails.
+The unapplied `20261103020000_user_profiles` migration was removed.
+
+Run `npm run db:migrate`, `npm run db:generate`, and rebuild/restart the API. There
+is no database reset and no editing of Prisma's applied migration history. The
+platform roles remain PATIENT, ADMIN, DOCTOR and STAFF, as before the split.
+Organization roles and profile tables are deferred.

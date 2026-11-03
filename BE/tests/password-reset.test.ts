@@ -35,7 +35,7 @@ async function fixture() {
   const server = app.listen(0, '127.0.0.1');
   await once(server, 'listening');
   return { records, deliveries, passwords, emails,
-    post(path: string, body: object) { return fetch(`http://127.0.0.1:${(server.address() as AddressInfo).port}/${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); },
+    post(path: string, body: object) { return fetch(`http://127.0.0.1:${(server.address() as AddressInfo).port}/${path}`, { method: 'POST', headers: { 'X-CSRF-Protection': '1', 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); },
     async close() { await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())); },
   };
 }

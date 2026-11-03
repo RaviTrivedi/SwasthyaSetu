@@ -32,7 +32,7 @@ async function fixture(production = false, fail = false) {
   return { token, hash, calls, config, revoked: () => revoked,
     post(cookie?: string, body?: object) {
       return fetch(`http://127.0.0.1:${(server.address() as AddressInfo).port}/logout`, {
-        method: 'POST', headers: { ...(cookie ? { Cookie: cookie } : {}), 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'X-CSRF-Protection': '1', ...(cookie ? { Cookie: cookie } : {}), 'Content-Type': 'application/json' },
         ...(body ? { body: JSON.stringify(body) } : {}),
       });
     },
@@ -99,7 +99,7 @@ test('POST logout is mounted in the application', async () => {
   const server = app.listen(0, '127.0.0.1');
   await once(server, 'listening');
   try {
-    const response = await fetch(`http://127.0.0.1:${(server.address() as AddressInfo).port}/api/v1/auth/logout`, { method: 'POST' });
+    const response = await fetch(`http://127.0.0.1:${(server.address() as AddressInfo).port}/api/v1/auth/logout`, { method: 'POST', headers: { 'X-CSRF-Protection': '1' } });
     assert.equal(response.status, 200);
     assert.deepEqual(await response.json(), { message: 'Logged out' });
     assert.match(response.headers.get('set-cookie')!, /^refresh_token=;/);

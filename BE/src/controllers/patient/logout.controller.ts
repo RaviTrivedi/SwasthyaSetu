@@ -1,3 +1,4 @@
+import { accessCookieName, accessCookieOptions } from '../../config/access-cookie.js';
 import { API_SUCCESS_MESSAGES } from '../../constants/messages.js';
 import type { RequestHandler } from "express";
 import { browserConfig } from "../../config/session.js";
@@ -17,6 +18,7 @@ export function createLogoutController(
     const options = refreshCookieOptions(config());
     // Clear even on persistence errors, but let the centralized handler report failure.
     res.clearCookie(refreshCookieName, options);
+    res.clearCookie(accessCookieName, accessCookieOptions(config()));
     await logout(readRefreshCookie(req.get("cookie")));
     res.status(200).json({ message: API_SUCCESS_MESSAGES.LOGGED_OUT });
   };

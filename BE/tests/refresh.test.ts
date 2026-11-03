@@ -44,7 +44,7 @@ async function fixture(mode: 'active' | 'expired' | 'revoked' | 'failure' = 'act
   const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}/api/v1/auth/refresh`;
   return { token, config, writes, events,
     post(cookie?: string, body?: object) {
-      return fetch(url, { method: 'POST', headers: { ...(cookie ? { Cookie: cookie } : {}), 'Content-Type': 'application/json' }, ...(body ? { body: JSON.stringify(body) } : {}) });
+      return fetch(url, { method: 'POST', headers: { 'X-CSRF-Protection': '1', ...(cookie ? { Cookie: cookie } : {}), 'Content-Type': 'application/json' }, ...(body ? { body: JSON.stringify(body) } : {}) });
     },
     async close() { await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())); },
   };
@@ -58,8 +58,8 @@ test('refresh returns a minimal signed access token and rotates only the cookie 
       assert.equal(response.status, 200);
       assert.equal(response.headers.get('cache-control'), 'no-store');
       const body = await response.json() as { accessToken: string };
-      assert.deepEqual(Object.keys(body), ['accessToken']);
-      const { payload } = await jwtVerify(body.accessToken, f.config.signingKey, { algorithms: ['HS256'] });
+      assert.deepEqual(body, { message: 'Session refreshed' });
+      const { payload } = await jwtVerify(response.headers.getSetCookie().find(value => value.startsWith('access_token='))!.split(';')[0]!.slice('access_token='.length), f.config.signingKey, { algorithms: ['HS256'] });
       assert.deepEqual(Object.keys(payload).sort(), ['exp', 'iat', 'role', 'sub']);
       assert.equal(payload.sub, 'test-user');
       assert.equal(payload.role, 'PATIENT');

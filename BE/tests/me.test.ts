@@ -39,7 +39,7 @@ test('me uses verified identity and current database profile, excluding all priv
   const token = await sign(key);
   const get = (authorization?: string) => fetch(
     `http://127.0.0.1:${(server.address() as AddressInfo).port}/api/v1/auth/me?userId=attacker&role=ADMIN`,
-    { headers: { ...(authorization ? { Authorization: authorization } : {}), Cookie: 'refresh_token=ignored' } });
+    { headers: { 'X-CSRF-Protection': '1', ...(authorization ? { Authorization: authorization } : {}), Cookie: 'refresh_token=ignored' } });
   try {
     for (const header of [undefined, 'Bearer malformed', `Bearer ${await sign(randomBytes(32))}`, `Bearer ${await sign(key, now - 1)}`]) {
       const response = await get(header);

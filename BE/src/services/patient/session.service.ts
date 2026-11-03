@@ -29,6 +29,7 @@ export function createIssueSession(
     await repository.createSession({ userId: user.id, tokenHash, expiresAt });
     return {
       accessToken,
+      accessExpiresAt: new Date((now + settings.accessTtlSeconds) * 1000),
       refreshToken,
       expiresAt,
       secure: settings.secure,

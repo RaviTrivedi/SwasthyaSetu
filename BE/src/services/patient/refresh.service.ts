@@ -35,7 +35,7 @@ export function createRefreshSession(
       .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
       .setSubject(result.user.id).setIssuedAt(now).setExpirationTime(now + settings.accessTtlSeconds)
       .sign(settings.signingKey);
-    return { accessToken, refreshToken, expiresAt, secure: settings.secure, sameSite: settings.sameSite };
+    return { accessToken, accessExpiresAt: new Date((now + settings.accessTtlSeconds) * 1000), refreshToken, expiresAt, secure: settings.secure, sameSite: settings.sameSite };
   };
 }
 

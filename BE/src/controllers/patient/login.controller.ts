@@ -1,4 +1,5 @@
 import { API_ERROR_MESSAGES } from '../../constants/messages.js';
+import { accessCookieName, accessCookieOptions } from '../../config/access-cookie.js';
 import type { RequestHandler } from 'express';
 import { HttpError } from '../../errors/http-error.js';
 import type { LoginPatient } from '../../services/patient/login.service.js';
@@ -18,8 +19,9 @@ export function createLoginController(login: LoginPatient, issue: IssueSession =
     const user = await login(parsed.data);
     const session = await issue(user);
     res.cookie(refreshCookieName, session.refreshToken, refreshCookieOptions(session));
+    res.cookie(accessCookieName, session.accessToken, { ...accessCookieOptions(session), expires: session.accessExpiresAt });
     res.set('Cache-Control', 'no-store');
     // Sending JSON ends the response; no next() is needed on this successful path.
-    res.status(200).json({ user, accessToken: session.accessToken });
+    res.status(200).json({ user });
   };
 }

@@ -1,3 +1,4 @@
+import { createAccountFixture } from './account-fixture.js';
 import assert from 'node:assert/strict';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { test } from 'node:test';
@@ -15,7 +16,7 @@ test('PostgreSQL serializes refresh and replay revokes the winning session famil
   const next = [randomBytes(32).toString('hex'), randomBytes(32).toString('hex')];
   const expiry = new Date(Date.now() + 86400000);
   try {
-    await db.user.create({ data: { id, firstName: 'Refresh test', email: `${id}@example.invalid`, passwordHash: 'non-login-test-fixture' } });
+    await createAccountFixture({ id, firstName: 'Refresh test', email: `${id}@example.invalid`, passwordHash: 'non-login-test-fixture' });
     const session = await db.session.create({ data: { userId: id, tokenHash: original, expiresAt: expiry } });
     const results = await Promise.all(next.map(nextTokenHash => rotateSession({ tokenHash: original, nextTokenHash, expiresAt: expiry })));
     assert.equal(results.filter(result => result.status === 'rotated').length, 1);
@@ -35,3 +36,5 @@ test('PostgreSQL serializes refresh and replay revokes the winning session famil
     await disconnectDatabase();
   }
 });
+
+

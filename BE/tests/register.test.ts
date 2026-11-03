@@ -41,8 +41,8 @@ async function fixture(options: { duplicate?: boolean; race?: boolean; failure?:
   const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}/api/v1/auth/register`;
   return {
     writes, lookups,
-    post(body: unknown) { return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); },
-    raw(body: string) { return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }); },
+    post(body: unknown) { return fetch(url, { method: 'POST', headers: { 'X-CSRF-Protection': '1', 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); },
+    raw(body: string) { return fetch(url, { method: 'POST', headers: { 'X-CSRF-Protection': '1', 'Content-Type': 'application/json' }, body }); },
     async close() { await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())); },
   };
 }
@@ -143,7 +143,7 @@ test('application mounts registration and preserves health and 404 behavior', as
   const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   try {
     const response = await fetch(`${base}/api/v1/auth/register`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+      method: 'POST', headers: { 'X-CSRF-Protection': '1', 'Content-Type': 'application/json' }, body: '{}',
     });
     assert.equal(response.status, 400);
     assert.deepEqual(await response.json(), { message: 'Invalid registration input' });

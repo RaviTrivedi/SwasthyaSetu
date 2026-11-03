@@ -58,8 +58,8 @@ async function fixture(mode: 'found' | 'unknown' | 'failure' | 'session-failure'
   const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}/api/v1/auth/login`;
   return {
     lookups, sessions, settings,
-    post(body: unknown) { return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); },
-    raw(body: string) { return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }); },
+    post(body: unknown) { return fetch(url, { method: 'POST', headers: { 'X-CSRF-Protection': '1', 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); },
+    raw(body: string) { return fetch(url, { method: 'POST', headers: { 'X-CSRF-Protection': '1', 'Content-Type': 'application/json' }, body }); },
     async close() { await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())); },
   };
 }
@@ -84,17 +84,17 @@ test('login persists only a refresh hash and returns a signed access token and s
     assert.equal(f.sessions[0]!.userId, storedUser.id);
     assert.ok(f.sessions[0]!.expiresAt.getTime() > Date.now() + 29 * 86400000);
     const body = await response.json() as { user: unknown; accessToken: string };
-    assert.deepEqual(Object.keys(body).sort(), ['accessToken', 'user']);
+    assert.deepEqual(Object.keys(body).sort(), ['user']);
     assert.deepEqual(body.user, {
       id: storedUser.id, firstName: 'Test', email: 'test@example.invalid',
       role: 'PATIENT', createdAt: storedUser.createdAt.toISOString(),
     });
-    const { payload } = await jwtVerify(body.accessToken, f.settings.signingKey, { algorithms: ['HS256'] });
+    const { payload } = await jwtVerify(response.headers.getSetCookie().find(value => value.startsWith('access_token='))!.split(';')[0]!.slice('access_token='.length), f.settings.signingKey, { algorithms: ['HS256'] });
     assert.deepEqual(Object.keys(payload).sort(), ['exp', 'iat', 'role', 'sub']);
     assert.equal(payload.sub, storedUser.id);
     assert.equal(payload.role, 'PATIENT');
     assert.equal(payload.exp! - payload.iat!, 900);
-    await assert.rejects(jwtVerify(body.accessToken, randomBytes(32), { algorithms: ['HS256'] }));
+    await assert.rejects(jwtVerify(response.headers.getSetCookie().find(value => value.startsWith('access_token='))!.split(';')[0]!.slice('access_token='.length), randomBytes(32), { algorithms: ['HS256'] }));
     assert.deepEqual(f.lookups, ['test@example.invalid']);
   } finally { await f.close(); }
 });
@@ -165,7 +165,7 @@ test('application mounts POST login with the centralized error handler', async (
   await once(server, 'listening');
   try {
     const response = await fetch(`http://127.0.0.1:${(server.address() as AddressInfo).port}/api/v1/auth/login`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+      method: 'POST', headers: { 'X-CSRF-Protection': '1', 'Content-Type': 'application/json' }, body: '{}',
     });
     assert.equal(response.status, 400);
     assert.deepEqual(await response.json(), { message: 'Invalid login input' });
@@ -219,11 +219,11 @@ test('credentialed CORS allows only the configured frontend and rejects hostile 
   try {
     const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}/api/v1/auth/login`;
     const origin = process.env.FRONTEND_ORIGIN ?? 'http://localhost:3000';
-    const allowed = await fetch(url, { method: 'OPTIONS', headers: { Origin: origin, 'Access-Control-Request-Method': 'POST' } });
+    const allowed = await fetch(url, { method: 'OPTIONS', headers: { 'X-CSRF-Protection': '1', Origin: origin, 'Access-Control-Request-Method': 'POST' } });
     assert.equal(allowed.status, 204);
     assert.equal(allowed.headers.get('access-control-allow-origin'), origin);
     assert.equal(allowed.headers.get('access-control-allow-credentials'), 'true');
-    const denied = await fetch(url, { method: 'POST', headers: { Origin: 'https://untrusted.invalid', 'Content-Type': 'application/json' }, body: '{}' });
+    const denied = await fetch(url, { method: 'POST', headers: { 'X-CSRF-Protection': '1', Origin: 'https://untrusted.invalid', 'Content-Type': 'application/json' }, body: '{}' });
     assert.equal(denied.status, 403);
     assert.equal(denied.headers.get('set-cookie'), null);
     assert.deepEqual(await denied.json(), { message: 'Origin not allowed' });

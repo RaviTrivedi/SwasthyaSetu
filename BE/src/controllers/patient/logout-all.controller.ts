@@ -1,3 +1,4 @@
+import { accessCookieName, accessCookieOptions } from '../../config/access-cookie.js';
 import { API_SUCCESS_MESSAGES } from '../../constants/messages.js';
 import type { RequestHandler } from 'express';
 import { browserConfig } from '../../config/session.js';
@@ -11,6 +12,7 @@ export function createLogoutAllController(logout: LogoutAll, config = browserCon
     const options = refreshCookieOptions(config());
     await logout(userId);
     res.clearCookie(refreshCookieName, options);
+    res.clearCookie(accessCookieName, accessCookieOptions(config()));
     res.set('Cache-Control', 'no-store');
     res.status(200).json({ message: API_SUCCESS_MESSAGES.LOGGED_OUT_ALL });
   };

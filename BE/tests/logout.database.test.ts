@@ -1,3 +1,4 @@
+import { createAccountFixture } from './account-fixture.js';
 import assert from 'node:assert/strict';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { test } from 'node:test';
@@ -11,7 +12,7 @@ test('logout revokes only the current active session and leaves other sessions u
   const db = getDatabase();
   const id = randomUUID();
   try {
-    await db.user.create({ data: { id, firstName: 'Logout test', email: `${id}@example.invalid`, passwordHash: 'non-login-test-fixture' } });
+    await createAccountFixture({ id, firstName: 'Logout test', email: `${id}@example.invalid`, passwordHash: 'non-login-test-fixture' });
     const make = (expiresAt: Date) => db.session.create({ data: { userId: id, tokenHash: randomBytes(32).toString('hex'), expiresAt } });
     const current = await make(new Date(Date.now() + 86400000));
     const other = await make(new Date(Date.now() + 86400000));
@@ -32,3 +33,5 @@ test('logout revokes only the current active session and leaves other sessions u
     await disconnectDatabase();
   }
 });
+
+

@@ -1,4 +1,5 @@
 import type { RequestHandler } from "express";
+import { accessCookieName, accessCookieOptions } from '../../config/access-cookie.js';
 import {
   refreshCookieName,
   refreshCookieOptions,
@@ -26,6 +27,7 @@ export function createRefreshController(
       session.refreshToken,
       refreshCookieOptions(session)
     );
-    res.status(200).json({ accessToken: session.accessToken });
+    res.cookie(accessCookieName, session.accessToken, { ...accessCookieOptions(session), expires: session.accessExpiresAt });
+    res.status(200).json({ message: 'Session refreshed' });
   };
 }

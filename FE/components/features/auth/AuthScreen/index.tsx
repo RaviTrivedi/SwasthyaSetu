@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useRef, useState, type FormEvent } from 'react';
+import { apiRequest, currentUser, logout, type AuthUser } from '../api';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import {
   normalizePhone,
   validateAuth,
@@ -27,9 +28,18 @@ export default function AuthScreen({ mode }: { mode: AuthMode }) {
   const [errors, setErrors] = useState<AuthErrors>({});
   const [showPassword, setShowPassword] = useState(false);
   const [feedback, setFeedback] = useState('');
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [busy, setBusy] = useState(false);
   const form = useRef<HTMLFormElement>(null);
   const isSignUp = mode === 'sign-up';
   const isAdmin = mode === 'admin';
+  useEffect(() => {
+    let active = true;
+    currentUser().then(profile => { if (active) setUser(profile); }).catch(() => {
+      if (active) setFeedback('Unable to check your session. Please try again.');
+    });
+    return () => { active = false; };
+  }, []);
 
   function update(field: keyof AuthValues, value: string) {
     setValues((previous) => ({ ...previous, [field]: value }));
@@ -37,7 +47,7 @@ export default function AuthScreen({ mode }: { mode: AuthMode }) {
     setFeedback('');
   }
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const nextErrors = validateAuth(mode, values);
     setErrors(nextErrors);
@@ -51,15 +61,21 @@ export default function AuthScreen({ mode }: { mode: AuthMode }) {
       )?.focus();
       return;
     }
-    // TODO: Integrate Firebase Authentication email/password registration or
-    // sign-in here. Revalidate input and handle provider errors accessibly.
-    // TODO: Admin access requires backend verification of the Firebase session
-    // and server-managed admin permissions; form input never grants a role.
-    setFeedback(
-      isSignUp
-        ? 'Account creation is not connected yet. No account has been created.'
-        : 'Authentication is not connected yet. You are not signed in.',
-    );
+    if (busy) return;
+    setBusy(true);
+    try {
+      const response = await apiRequest(isSignUp ? '/auth/register' : isAdmin ? '/admin/auth/login' : '/auth/login', {
+        method: 'POST', refresh: false,
+        body: { email: values.email, password: values.password, ...(isSignUp ? { firstName: values.firstName } : {}) },
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message ?? 'Unable to authenticate.');
+      if (!isSignUp) setUser(result.user);
+      setValues(previous => ({ ...previous, password: '' }));
+      setFeedback(isSignUp ? 'Account created. Please sign in.' : 'You are signed in.');
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : 'Unable to connect. Please try again.');
+    } finally { setBusy(false); }
   }
 
   function social(provider: string) {
@@ -88,9 +104,9 @@ export default function AuthScreen({ mode }: { mode: AuthMode }) {
       </header>
       <div className={styles.body}>
         <p className={styles.notice}>
-          Frontend preview. Authentication is not connected. Details are not
-          sent or saved by this app.
+          {user ? 'You are signed in.' : 'Sign in securely to your account.'}
         </p>
+        {user && <button type="button" onClick={async () => { try { await logout(); setUser(null); setFeedback("Signed out."); } catch { setFeedback("Unable to sign out."); } }}>Sign out</button>}
         <form
           ref={form}
           noValidate
@@ -214,7 +230,7 @@ export default function AuthScreen({ mode }: { mode: AuthMode }) {
               </p>
             )}
           </div>
-          <button type="submit" className={styles.primary}>
+          <button type="submit" disabled={busy} className={styles.primary}>
             {isSignUp ? 'Create account' : 'Sign in'}
           </button>
         </form>

@@ -1,6 +1,16 @@
 // Public API response text. Keep secrets and provider/database details out of these.
 export const API_ERROR_MESSAGES = {
   NOT_FOUND: "Not found",
+  FACILITY_PROFILE_NOT_FOUND: "No approved facility profile found",
+  FACILITY_PROFILE_EXISTS: "Facility profile already exists",
+  MULTIPLE_FACILITIES: "Multiple approved applications exist; a single facility cannot be selected",
+  INVALID_FACILITY_PROFILE: "Invalid facility profile input",
+  PROFILE_UPDATE_CONFLICT: "Facility profile changed concurrently; please retry",
+  APPLICATION_NOT_REJECTED: "Only rejected applications can be reopened",
+  FORBIDDEN: "Forbidden",
+  INVALID_APPLICATION_REVIEW: "Invalid facility application review input",
+  APPLICATION_ALREADY_REVIEWED: "Facility application is no longer pending",
+  INVALID_FACILITY_APPLICATION: "Invalid facility application input",
   INVALID_JSON: "Invalid JSON body",
   BODY_TOO_LARGE: "Request body too large",
   INTERNAL_SERVER_ERROR: "Internal server error",
