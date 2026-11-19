@@ -1,0 +1,12 @@
+'use client';
+import { useEffect, useState } from 'react';
+export function useResource<T>(load: () => Promise<T>) {
+  const [state, setState] = useState<{ data: T | null; error: Error | null; loading: boolean }>({ data: null, error: null, loading: true });
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    let active = true;
+    load().then(data => { if (active) setState({ data, error: null, loading: false }); }).catch(error => { if (active) setState({ data: null, error: error instanceof Error ? error : new Error('Unable to connect. Please retry.'), loading: false }); });
+    return () => { active = false; };
+  }, [load, attempt]);
+  return { ...state, retry: () => { setState({ data: null, error: null, loading: true }); setAttempt(value => value + 1); }, setData: (data: T) => setState({ data, error: null, loading: false }) };
+}

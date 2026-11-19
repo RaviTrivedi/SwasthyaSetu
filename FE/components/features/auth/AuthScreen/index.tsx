@@ -1,7 +1,9 @@
 'use client';
+import { safeReturnPath } from '../access-policy';
 
 import Link from 'next/link';
-import { apiRequest, currentUser, logout, type AuthUser } from '../api';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { apiRequest, currentUser, doctorAccess, logout, staffLogin, staffLoginOptions, type StaffLoginRole, type AuthUser } from '../api';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import {
   normalizePhone,
@@ -32,7 +34,10 @@ export default function AuthScreen({ mode }: { mode: AuthMode }) {
   const [busy, setBusy] = useState(false);
   const form = useRef<HTMLFormElement>(null);
   const isSignUp = mode === 'sign-up';
-  const isAdmin = mode === 'admin';
+  const router = useRouter();
+  const requestedRole = useSearchParams().get('role');
+  const [loginRole, setLoginRole] = useState<StaffLoginRole>(requestedRole === 'ADMIN' || requestedRole === 'DOCTOR' || requestedRole === 'PATIENT' ? requestedRole : mode === 'admin' ? 'ADMIN' : 'PATIENT');
+  const isAdmin = !isSignUp && loginRole === 'ADMIN';
   useEffect(() => {
     let active = true;
     currentUser().then(profile => { if (active) setUser(profile); }).catch(() => {
@@ -64,7 +69,19 @@ export default function AuthScreen({ mode }: { mode: AuthMode }) {
     if (busy) return;
     setBusy(true);
     try {
-      const response = await apiRequest(isSignUp ? '/auth/register' : isAdmin ? '/admin/auth/login' : '/auth/login', {
+      if (!isSignUp) {
+        const result = await staffLogin(loginRole, values.email, values.password);
+        setUser(result.user);
+        setValues(previous => ({ ...previous, password: '' }));
+        let destination = safeReturnPath(new URLSearchParams(window.location.search).get('returnTo'), result.user.role) ?? result.dashboard;
+        if (result.user.role === 'DOCTOR') {
+          const access = await doctorAccess();
+          if (access.approvedCount !== 1 || !access.profileAvailable) destination = '/doctor/application-status';
+        }
+        router.replace(destination);
+        return;
+      }
+      const response = await apiRequest('/auth/register', {
         method: 'POST', refresh: false,
         body: { email: values.email, password: values.password, ...(isSignUp ? { firstName: values.firstName } : {}) },
       });
@@ -100,9 +117,21 @@ export default function AuthScreen({ mode }: { mode: AuthMode }) {
         <p className={styles.eyebrow}>
           {isAdmin ? 'Platform administration' : 'Your care, connected'}
         </p>
-        <h1 id="auth-title">{titles[mode]}</h1>
+        <h1 id="auth-title">{isSignUp ? titles[mode] : staffLoginOptions[loginRole].label}</h1>
       </header>
       <div className={styles.body}>
+        {!isSignUp && (
+          <fieldset className={styles.loginOptions} disabled={busy}>
+            <legend>Choose your login</legend>
+            {(['PATIENT', 'ADMIN', 'DOCTOR'] as const).map(role => (
+              <label key={role}>
+                <input type="radio" name="loginRole" value={role} checked={loginRole === role}
+                  onChange={() => { setLoginRole(role); setErrors({}); setFeedback(''); setShowPassword(false); setValues(previous => ({ ...previous, password: '' })); }} />
+                {staffLoginOptions[role].label}
+              </label>
+            ))}
+          </fieldset>
+        )}
         <p className={styles.notice}>
           {user ? 'You are signed in.' : 'Sign in securely to your account.'}
         </p>
@@ -231,10 +260,10 @@ export default function AuthScreen({ mode }: { mode: AuthMode }) {
             )}
           </div>
           <button type="submit" disabled={busy} className={styles.primary}>
-            {isSignUp ? 'Create account' : 'Sign in'}
+            {busy ? 'Please waitâ€¦' : isSignUp ? 'Create account' : staffLoginOptions[loginRole].label}
           </button>
         </form>
-        {!isAdmin && (
+        {isSignUp && (
           <div className={styles.alternatives}>
             <p className={styles.divider}>Or continue with</p>
             <button type="button" onClick={() => social('Google')}>
@@ -253,26 +282,15 @@ export default function AuthScreen({ mode }: { mode: AuthMode }) {
         >
           {feedback}
         </p>
-        <div className={styles.footer}>
-          {isAdmin ? (
-            <Link href="/sign-in">Back to regular Sign In</Link>
-          ) : isSignUp ? (
-            <p>
-              Already have an account? <Link href="/sign-in">Sign In</Link>
-            </p>
-          ) : (
-            <p>
-              New to SwasthyaSetu? <Link href="/sign-up">Sign Up</Link>
-            </p>
-          )}
-        </div>
-        {mode === 'sign-in' && (
-          <div className={styles.admin}>
-            <p>Platform administrators</p>
-            <Link href="/admin-sign-in">Admin login →</Link>
+        {isSignUp && (
+          <div className={styles.footer}>
+            <p>Already have an account? <Link href="/sign-in">Sign In</Link></p>
           </div>
         )}
       </div>
     </section>
   );
 }
+
+
+

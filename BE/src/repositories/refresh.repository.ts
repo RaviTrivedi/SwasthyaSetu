@@ -1,3 +1,4 @@
+import { accountCredentials } from './user.repository.js';
 
 import { getDatabase } from '../config/database.js';
 
@@ -14,9 +15,10 @@ export function rotateSession(input: { tokenHash: string; nextTokenHash: string;
     if (!id) return { status: 'invalid' } as const;
     const session = await tx.session.findUniqueOrThrow({
       where: { id },
-      include: { user: { include: { role: true } } },
+      include: { patient: { include: { role: true } }, admin: { include: { role: true } }, doctor: { include: { role: true } } },
     });
-    const account = { ...session.user, role: session.user.role.name };
+    const owner = session.patient ?? session.admin ?? session.doctor;
+    const account = owner ? accountCredentials(owner) : null;
     if (!account || account.disabledAt) return { status: 'invalid' } as const;
     const now = new Date();
     if (session.revokedAt || session.consumedTokenHashes.includes(input.tokenHash)) {

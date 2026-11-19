@@ -81,3 +81,4 @@ test('Resend configuration rejects missing credentials, placeholders and unsafe 
   assert.throws(() => passwordResetDeliveryConfig({ ...source, NODE_ENV: 'development', PASSWORD_RESET_FROM: 'other@resend.dev' }));
   assert.equal(passwordResetDeliveryConfig({ NODE_ENV: 'development', PASSWORD_RESET_DELIVERY: 'development-file' }).mode, 'development-file');
 });
+

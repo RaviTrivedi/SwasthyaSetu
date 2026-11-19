@@ -1,3 +1,4 @@
+import { isIP } from 'node:net';
 import { API_ERROR_MESSAGES } from '../../constants/messages.js';
 import { accessCookieName, accessCookieOptions } from '../../config/access-cookie.js';
 import type { RequestHandler } from 'express';
@@ -17,7 +18,7 @@ export function createLoginController(login: LoginPatient, issue: IssueSession =
     }
     // await pauses this handler until verification finishes, then creates a persisted session.
     const user = await login(parsed.data);
-    const session = await issue(user);
+    const session = await issue(user, req.ip && isIP(req.ip) ? req.ip : null);
     res.cookie(refreshCookieName, session.refreshToken, refreshCookieOptions(session));
     res.cookie(accessCookieName, session.accessToken, { ...accessCookieOptions(session), expires: session.accessExpiresAt });
     res.set('Cache-Control', 'no-store');

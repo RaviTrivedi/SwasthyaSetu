@@ -40,6 +40,7 @@ test('cookies authenticate, CSRF rejects unsafe requests, CORS supports PATCH an
     for (const origin of [undefined, settings.frontendOrigin, 'null', 'https://hostile.invalid']) {
       const response = await fetch(`${url}/protected`, { method: 'PATCH', headers: { Cookie: `access_token=${token}`, ...(origin ? { Origin: origin } : {}) } });
       assert.equal(response.status, 403);
+      assert.deepEqual(await response.json(), { message: "Request blocked by CSRF protection. Send the X-CSRF-Protection header with the value 1 for this request." });
     }
     assert.equal((await fetch(`${url}/protected`, { method: 'PATCH', headers: { Cookie: `access_token=${token}`, 'X-CSRF-Protection': '1', Origin: 'https://hostile.invalid' } })).status, 403);
     const preflight = await fetch(`${url}/protected`, { method: 'OPTIONS', headers: { Origin: settings.frontendOrigin, 'Access-Control-Request-Method': 'PATCH', 'Access-Control-Request-Headers': 'X-CSRF-Protection' } });
@@ -62,4 +63,18 @@ test('cookies authenticate, CSRF rejects unsafe requests, CORS supports PATCH an
     assert.equal(revoked, 'refresh-value');
     assert.deepEqual(accessCookieOptions({ secure: true, sameSite: 'none' }), { httpOnly: true, secure: true, sameSite: 'none', path: '/api/v1' });
   } finally { await new Promise<void>(resolve => server.close(() => resolve())); }
+});
+
+
+test('local browser preflight permits PUT and DELETE with credentials and CSRF headers', async () => {
+ const application = express(); application.use(browserAccess); application.use(errorHandler);
+ const server = application.listen(0, '127.0.0.1'); await once(server, 'listening');
+ try {
+  for (const method of ['PUT', 'DELETE']) {
+   const response = await fetch(`http://127.0.0.1:${(server.address() as AddressInfo).port}/api/v1/doctor/facility`, { method: 'OPTIONS', headers: { Origin: browserConfig().frontendOrigin, 'Access-Control-Request-Method': method, 'Access-Control-Request-Headers': 'content-type,x-csrf-protection' } });
+   assert.equal(response.status, 204); assert.equal(response.headers.get('access-control-allow-origin'), browserConfig().frontendOrigin);
+   assert.equal(response.headers.get('access-control-allow-credentials'), 'true');
+   assert.ok(response.headers.get('access-control-allow-methods')?.split(',').includes(method));
+  }
+ } finally { await new Promise<void>(resolve => server.close(() => resolve())); }
 });

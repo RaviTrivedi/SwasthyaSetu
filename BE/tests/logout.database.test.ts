@@ -29,9 +29,10 @@ test('logout revokes only the current active session and leaves other sessions u
     assert.equal((await db.session.findUniqueOrThrow({ where: { id: expired.id } })).revokedAt, null);
     assert.deepEqual((await db.session.findUniqueOrThrow({ where: { id: current.id } })).revokedAt, revoked.revokedAt);
   } finally {
-    await db.user.deleteMany({ where: { id } });
+    await db.patient.deleteMany({ where: { id } });
     await disconnectDatabase();
   }
 });
+
 
 

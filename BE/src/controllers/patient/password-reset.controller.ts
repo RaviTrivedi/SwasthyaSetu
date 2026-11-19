@@ -1,5 +1,11 @@
-import { accessCookieName, accessCookieOptions } from '../../config/access-cookie.js';
-import { API_ERROR_MESSAGES, API_SUCCESS_MESSAGES } from '../../constants/messages.js';
+import {
+  accessCookieName,
+  accessCookieOptions,
+} from "../../config/access-cookie.js";
+import {
+  API_ERROR_MESSAGES,
+  API_SUCCESS_MESSAGES,
+} from "../../constants/messages.js";
 import type { RequestHandler } from "express";
 import { HttpError } from "../../errors/http-error.js";
 import { browserConfig } from "../../config/session.js";
@@ -21,8 +27,13 @@ export function createResetRequestController(
     const parsed = resetRequestSchema.safeParse(req.body);
     if (!parsed.success)
       throw new HttpError(400, API_ERROR_MESSAGES.INVALID_RESET_REQUEST);
+
+    // Sending the reset request email is an asynchronous operation
+    // that may take some time.
     await service.request(parsed.data.email);
-    res.status(200).json({ message: API_SUCCESS_MESSAGES.RESET_REQUEST_RECEIVED });
+    res
+      .status(200)
+      .json({ message: API_SUCCESS_MESSAGES.RESET_REQUEST_RECEIVED });
   };
 }
 
@@ -32,7 +43,8 @@ export function createResetConfirmController(
   return async (req, res) => {
     res.set("Cache-Control", "no-store");
     const parsed = resetConfirmSchema.safeParse(req.body);
-    if (!parsed.success) throw new HttpError(400, API_ERROR_MESSAGES.INVALID_RESET_TOKEN);
+    if (!parsed.success)
+      throw new HttpError(400, API_ERROR_MESSAGES.INVALID_RESET_TOKEN);
     const cookieOptions = refreshCookieOptions(browserConfig());
     await service.confirm(parsed.data.token, parsed.data.newPassword);
     res.clearCookie(refreshCookieName, cookieOptions);

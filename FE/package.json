@@ -6,12 +6,15 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "test:admin": "node --test tests/admin-applications.test.mjs tests/admin-directory.test.mjs",
     "test:auth": "node --test tests/auth-api.test.mjs",
+    "test:workspace": "node --test tests/workspace-api.test.mjs",
+    "test:booking": "node --test tests/patient-booking.test.mjs",
     "lint": "eslint",
     "format": "prettier . --write"
   },
   "dependencies": {
-    "next": "16.4.0",
+    "next": "16.4.6",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
@@ -20,7 +23,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.4.0",
+    "eslint-config-next": "16.4.6",
     "prettier": "^3.9.10",
     "typescript": "^5"
   }

@@ -1,0 +1,5 @@
+.filters { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: end; margin-block: var(--space-4); }
+.filters label { display: grid; gap: var(--space-2); max-width: 100%; }
+.filters input { font: inherit; padding: var(--space-3); min-height: 44px; max-width: 100%; border: 1px solid var(--control-border); border-radius: var(--radius); background: var(--surface); color: var(--navy); }
+.applications { padding-inline-start: var(--space-4); list-style: disc; }
+.applications li + li { margin-top: var(--space-3); }

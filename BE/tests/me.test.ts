@@ -44,7 +44,7 @@ test('me uses verified identity and current database profile, excluding all priv
     for (const header of [undefined, 'Bearer malformed', `Bearer ${await sign(randomBytes(32))}`, `Bearer ${await sign(key, now - 1)}`]) {
       const response = await get(header);
       assert.equal(response.status, 401);
-      assert.deepEqual(await response.json(), { message: 'Unauthorized' });
+      assert.deepEqual(await response.json(), { message: 'A valid sign-in session is required. Sign in again and send your access cookie or Bearer token.' });
       assert.equal(response.headers.get('set-cookie'), null);
     }
     assert.deepEqual(calls, []);
@@ -62,13 +62,13 @@ test('me uses verified identity and current database profile, excluding all priv
       if (disabled) record = { ...profile, disabledAt: new Date() };
       const response = await get(`Bearer ${token}`);
       assert.equal(response.status, 401);
-      assert.deepEqual(await response.json(), { message: 'Unauthorized' });
+      assert.deepEqual(await response.json(), { message: 'A valid sign-in session is required. Sign in again and send your access cookie or Bearer token.' });
       assert.equal(response.headers.get('set-cookie'), null);
     }
     fail = true;
     const response = await get(`Bearer ${token}`);
     assert.equal(response.status, 500);
-    assert.deepEqual(await response.json(), { message: 'Internal server error' });
+    assert.deepEqual(await response.json(), { message: 'The server could not complete this request. Try again later; use the X-Request-ID response header when reporting the problem.' });
     assert.equal(response.headers.get('set-cookie'), null);
   } finally {
     await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
@@ -83,8 +83,9 @@ test('production application mounts me behind authentication', async () => {
   try {
     const response = await fetch(`http://127.0.0.1:${(server.address() as AddressInfo).port}/api/v1/auth/me`);
     assert.equal(response.status, 401);
-    assert.deepEqual(await response.json(), { message: 'Unauthorized' });
+    assert.deepEqual(await response.json(), { message: 'A valid sign-in session is required. Sign in again and send your access cookie or Bearer token.' });
   } finally {
     await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
   }
 });
+

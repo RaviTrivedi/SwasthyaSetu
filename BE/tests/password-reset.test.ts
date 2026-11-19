@@ -73,7 +73,7 @@ test('confirmation hashes the new password, consumes token, and returns no secre
     assert.equal(await verify(f.passwords[0]!, newPassword), true);
     const replay = await f.post('confirm', { token, newPassword });
     assert.equal(replay.status, 400);
-    assert.deepEqual(await replay.json(), { message: 'Invalid or expired reset token' });
+    assert.deepEqual(await replay.json(), { message: 'The reset link is invalid, expired, already used, or not valid for this account type. Request a new link and provide a newPassword of 8-128 characters.' });
     assert.equal(f.passwords.length, 1);
   } finally { await f.close(); }
 });
@@ -87,7 +87,7 @@ test('unknown, expired, revoked and malformed tokens fail generically; roles/ema
     for (const value of [token, 'bad', randomBytes(32).toString('base64url')]) {
       const response = await f.post('confirm', { token: value, newPassword: 'new password 123' });
       assert.equal(response.status, 400);
-      assert.deepEqual(await response.json(), { message: 'Invalid or expired reset token' });
+      assert.deepEqual(await response.json(), { message: 'The reset link is invalid, expired, already used, or not valid for this account type. Request a new link and provide a newPassword of 8-128 characters.' });
     }
     f.records[0]!.expiresAt = new Date(Date.now() + 60000);
     f.records[0]!.revoked = true;
@@ -109,9 +109,9 @@ test('unavailable delivery fails before account lookup for every email', async (
     async createResetToken() { return { id: 'unused' }; },
     async revokeResetToken() { return { count: 0 }; },
     async consumeResetToken() { return false; },
-  }, async () => {}, () => { throw new HttpError(503, 'Password reset delivery is unavailable'); });
+  }, async () => {}, () => { throw new HttpError(503, 'Password reset email delivery is currently unavailable. Please try again later.'); });
   for (const email of ['known@example.invalid', 'unknown@example.invalid']) {
-    await assert.rejects(service.request(email), { status: 503, message: 'Password reset delivery is unavailable' });
+    await assert.rejects(service.request(email), { status: 503, message: 'Password reset email delivery is currently unavailable. Please try again later.' });
   }
   assert.equal(queried, false);
 });
@@ -132,3 +132,4 @@ test('delivery failures keep the generic result and never log provider secrets o
   assert.deepEqual(logs, [[JSON.stringify({ event: 'password_reset_delivery_failed' })]]);
   assert.equal(JSON.stringify(logs).includes(rawToken), false);
 });
+

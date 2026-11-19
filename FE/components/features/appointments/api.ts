@@ -1,0 +1,25 @@
+import { apiRequest } from '../auth/api';
+export type PublicFacility={id:string;facilityName:string;facilityType:'CLINIC'|'HOSPITAL';address:string;city:string;description:string|null;services:string[];timezone:string|null};
+export type Slot={id:string;startsAt:string;endsAt:string;booked:boolean};
+export type Availability={timezone:string|null;intervalMinutes:30;slots:Slot[]};
+export type Booking={id:string;status:'BOOKED';createdAt:string;facility:Pick<PublicFacility,'id'|'facilityName'|'facilityType'|'address'|'city'|'timezone'>;slot:{startsAt:string;endsAt:string}};
+export class BookingApiError extends Error {constructor(public status:number,message:string){super(message);}}
+const invalid=()=>new Error('The server returned an invalid response. Please reload.');
+function object(value:unknown):Record<string,unknown>{if(!value||typeof value!=='object'||Array.isArray(value))throw invalid();return value as Record<string,unknown>;}
+function text(value:unknown):string{if(typeof value!=='string')throw invalid();return value;}
+function date(value:unknown){const result=text(value);if(!Number.isFinite(Date.parse(result)))throw invalid();return result;}
+function summary(value:unknown):Booking['facility']{const row=object(value);if(row.facilityType!=='CLINIC'&&row.facilityType!=='HOSPITAL')throw invalid();const timezone=row.timezone===null?null:text(row.timezone);if(timezone)new Intl.DateTimeFormat('en',{timeZone:timezone});return {id:text(row.id),facilityName:text(row.facilityName),facilityType:row.facilityType,address:text(row.address),city:text(row.city),timezone};}
+function facility(value:unknown):PublicFacility{const row=object(value);if(!Array.isArray(row.services))throw invalid();return {...summary(row),description:row.description===null?null:text(row.description),services:row.services.map(text)};}
+export function bookingPayload(slotId:string,note:string){if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slotId))throw new Error('Select a valid slot.');const appointmentNote=note.trim();if(appointmentNote.length>2000)throw new Error('Appointment note must be 2000 characters or fewer.');return {slotId,...(appointmentNote?{appointmentNote}:{})};}
+export function createBookingApi(request=apiRequest){
+ async function read(path:string,options?:Parameters<typeof apiRequest>[1]){const response=await request(path,options);if(!response.ok){const messages:Record<number,string>={400:'Check your input. Choose a valid date within the next 365 days.',401:'Please sign in as a Patient to continue.',403:'Only active Patient accounts can book appointments.',404:'This facility is no longer available.',409:'This slot is unavailable. Please choose another.'};throw new BookingApiError(response.status,messages[response.status]??'Unable to complete the request. Please try again.');}return response;}
+ return {
+  async list(query:string){const row=object(await(await read(`/facilities?${query}`)).json());if(!Array.isArray(row.items)||!Number.isSafeInteger(row.total)||Number(row.total)<0||!Number.isInteger(row.page)||Number(row.page)<1||!Number.isInteger(row.pageSize)||Number(row.pageSize)<1)throw invalid();return {items:row.items.map(facility),total:Number(row.total),page:Number(row.page),pageSize:Number(row.pageSize)};},
+  async facility(id:string){return facility(await(await read(`/facilities/${encodeURIComponent(id)}`)).json());},
+  async availability(id:string,selectedDate:string):Promise<Availability>{const row=object(await(await read(`/facilities/${encodeURIComponent(id)}/slots?${new URLSearchParams({date:selectedDate})}`)).json());if(row.intervalMinutes!==30||!Array.isArray(row.slots))throw invalid();return {timezone:row.timezone===null?null:text(row.timezone),intervalMinutes:30,slots:row.slots.map(value=>{const slot=object(value);if(typeof slot.booked!=='boolean')throw invalid();return {id:text(slot.id),startsAt:date(slot.startsAt),endsAt:date(slot.endsAt),booked:slot.booked};})};},
+  async book(slotId:string,note:string):Promise<Booking>{const response=await read('/patient/appointments',{method:'POST',body:bookingPayload(slotId,note)});const row=object(await response.json()),slot=object(row.slot);if(response.status!==201||row.status!=='BOOKED')throw new Error('Booking was not confirmed. Do not submit again until you have checked with the facility.');return {id:text(row.id),status:'BOOKED',createdAt:date(row.createdAt),facility:summary(row.facility),slot:{startsAt:date(slot.startsAt),endsAt:date(slot.endsAt)}};},
+ };
+}
+export const bookingApi=createBookingApi();
+export function facilityToday(timezone:string){const parts=new Intl.DateTimeFormat('en-CA',{timeZone:timezone,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());return ['year','month','day'].map(key=>parts.find(part=>part.type===key)!.value).join('-');}
+export function displaySlot(value:string,timezone:string){return new Date(value).toLocaleString('en-IN',{timeZone:timezone,dateStyle:'medium',timeStyle:'short'});}

@@ -2,42 +2,39 @@ import { createAccountFixture } from './account-fixture.js';
 import assert from 'node:assert/strict';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { test } from 'node:test';
-import { hash, verify } from '@node-rs/argon2';
 import { getDatabase, disconnectDatabase } from '../src/config/database.js';
 import { env, requireDatabaseUrl } from '../src/config/env.js';
-import { consumeResetToken } from '../src/repositories/password-reset.repository.js';
+import { createResetToken, consumeResetToken, revokeResetToken } from '../src/repositories/password-reset.repository.js';
 
-test('reset is single-use under concurrency and atomically updates password and revokes sessions', async () => {
-  assert.equal(env.nodeEnv, 'development');
-  assert.ok(['localhost', '127.0.0.1', '[::1]'].includes(new URL(requireDatabaseUrl()).hostname));
-  const db = getDatabase();
-  const ids = [randomUUID(), randomUUID()];
-  try {
-    for (const id of ids) await createAccountFixture({ id, firstName: 'Reset test', email: `${id}@example.invalid`, passwordHash: 'non-login-test-fixture' });
-    for (const userId of [ids[0]!, ids[0]!, ids[1]!]) await db.session.create({ data: { userId, tokenHash: randomBytes(32).toString('hex'), expiresAt: new Date(Date.now() + 86400000) } });
-    const tokenHash = randomBytes(32).toString('hex');
-    const record = await db.passwordResetToken.create({ data: { userId: ids[0]!, tokenHash, expiresAt: new Date(Date.now() + 60000) } });
-    const extra = await db.passwordResetToken.create({ data: { userId: ids[0]!, tokenHash: randomBytes(32).toString('hex'), expiresAt: new Date(Date.now() + 60000) } });
-    const passwordHash = await hash('new test password', { algorithm: 2, memoryCost: 65536, timeCost: 3, parallelism: 1 });
-    const results = await Promise.all([consumeResetToken(tokenHash, passwordHash), consumeResetToken(tokenHash, passwordHash)]);
-    assert.deepEqual(results.sort(), [false, true]);
-    const user = await db.user.findUniqueOrThrow({ where: { id: ids[0]! } });
-    assert.equal(await verify(user.passwordHash, 'new test password'), true);
-    assert.equal((await db.user.findUniqueOrThrow({ where: { id: user.id } })).email, `${ids[0]}@example.invalid`);
-    assert.equal(user.roleId, 1);
-    assert.ok((await db.passwordResetToken.findUniqueOrThrow({ where: { id: record.id } })).usedAt);
-    assert.ok((await db.passwordResetToken.findUniqueOrThrow({ where: { id: extra.id } })).revokedAt);
-    assert.equal(await db.session.count({ where: { userId: ids[0]!, revokedAt: null } }), 0);
-    assert.equal(await db.session.count({ where: { userId: ids[1]!, revokedAt: null } }), 1);
-    assert.equal(await consumeResetToken(tokenHash, 'must-not-be-stored'), false);
-    assert.equal(await consumeResetToken(randomBytes(32).toString('hex'), 'must-not-be-stored'), false);
-    const expired = await db.passwordResetToken.create({ data: { userId: ids[0]!, tokenHash: randomBytes(32).toString('hex'), expiresAt: new Date(0) } });
-    assert.equal(await consumeResetToken(expired.tokenHash, 'must-not-be-stored'), false);
-    assert.equal((await db.user.findUniqueOrThrow({ where: { id: ids[0]! } })).passwordHash, passwordHash);
-  } finally {
-    await db.user.deleteMany({ where: { id: { in: ids } } });
-    await disconnectDatabase();
+test('inline resets are single-use, latest-link-only and revoke sessions for every account type', async () => {
+ assert.equal(env.nodeEnv, 'development'); assert.ok(['localhost','127.0.0.1','[::1]'].includes(new URL(requireDatabaseUrl()).hostname));
+ const db = getDatabase(); const ids: string[] = [];
+ try {
+  for (const kind of ['patient','admin','doctor'] as const) {
+   const id = randomUUID(); ids.push(id);
+   await createAccountFixture({ id, firstName: 'Reset fixture', email: `${id}@example.invalid`, passwordHash: 'old-hash', role: { connect: { name: kind.toUpperCase() } } });
+   const session = await db.session.create({ data: { userId: id, tokenHash: randomBytes(32).toString('hex'), expiresAt: new Date(Date.now()+60000) } });
+   const token = () => randomBytes(32).toString('hex'); const old = token(), current = token();
+   const input = { userId: id, expiresAt: new Date(Date.now()+60000) };
+   const oldRecord = await createResetToken({ ...input, tokenHash: old });
+   await createResetToken({ ...input, tokenHash: current });
+   await revokeResetToken(oldRecord.id); // An older email failure must not revoke the latest link.
+   assert.equal(await consumeResetToken(current, 'bad-hash', kind === 'admin' ? 'doctor' : 'admin'), false);
+   assert.equal(await consumeResetToken(old, 'bad-hash'), false);
+   assert.deepEqual((await Promise.all([consumeResetToken(current, 'new-hash'), consumeResetToken(current, 'new-hash')])).sort(), [false,true]);
+   const account = await (db[kind] as typeof db.patient).findUniqueOrThrow({ where: { id } });
+   assert.equal(account.passwordHash,'new-hash'); assert.equal(account.resetTokenHash,null); assert.equal(account.resetExpiresAt,null);
+   assert.ok((await db.session.findUniqueOrThrow({ where: { id: session.id } })).revokedAt);
+   assert.equal(await consumeResetToken(current,'bad-hash'),false);
+   const expired=token(); await createResetToken({ userId:id, tokenHash:expired, expiresAt:new Date(0) });
+   assert.equal(await consumeResetToken(expired,'bad-hash'),false);
+   const revoked=token(); const record=await createResetToken({ ...input,tokenHash:revoked }); await revokeResetToken(record.id);
+   assert.equal(await consumeResetToken(revoked,'bad-hash'),false);
   }
+  assert.equal(await consumeResetToken(randomBytes(32).toString('hex'),'bad-hash'),false);
+ } finally {
+  for(const kind of ['patient','admin','doctor'] as const) await (db[kind] as typeof db.patient).deleteMany({ where:{ id:{ in:ids } } });
+  await disconnectDatabase();
+ }
 });
-
 

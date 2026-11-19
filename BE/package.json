@@ -11,7 +11,9 @@
     "dev": "nodemon --watch src --ext ts,json --exec tsx src/server.ts",
     "dev:debug": "nodemon --inspect=0.0.0.0:9229 src/index.js",
     "typecheck": "prisma generate && tsc --noEmit && tsc -p tsconfig.test.json",
-    "test": "node --import tsx --test tests/register.test.ts tests/login.test.ts tests/refresh.test.ts tests/logout.test.ts tests/logout-all.test.ts tests/password-reset.test.ts tests/resend.test.ts tests/me.test.ts tests/facility-application.test.ts tests/admin-facility-application.test.ts tests/admin-auth.test.ts tests/cookie-auth.test.ts tests/facility-profile.test.ts tests/account-registry.test.ts",
+    "test": "node --import tsx --test tests/register.test.ts tests/login.test.ts tests/refresh.test.ts tests/logout.test.ts tests/logout-all.test.ts tests/password-reset.test.ts tests/resend.test.ts tests/me.test.ts tests/facility-application.test.ts tests/admin-facility-application.test.ts tests/admin-auth.test.ts tests/cookie-auth.test.ts tests/facility-profile.test.ts tests/account-registry.test.ts tests/clinic-auth.test.ts tests/error-handler.test.ts tests/role-password-reset.test.ts tests/doctor-facility.test.ts tests/opening-hours.test.ts tests/appointment.test.ts tests/admin-directory.test.ts tests/marketplace.test.ts",
+    "test:appointments:db": "node --import tsx --test tests/appointment.database.test.ts",
+    "test:accounts:db": "node --import tsx --test tests/account-types.database.test.ts",
     "test:admin-applications:db": "node --import tsx --test tests/admin-facility-application.database.test.ts",
     "test:password-reset:db": "node --import tsx --test tests/password-reset.database.test.ts",
     "test:logout-all:db": "node --import tsx --test tests/logout-all.database.test.ts",
@@ -43,4 +45,11 @@
     "typescript": "^5.9.3"
   }
 }
+
+
+
+
+
+
+
 

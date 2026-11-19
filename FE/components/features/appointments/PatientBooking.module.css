@@ -1,0 +1,10 @@
+.panel { padding: var(--space-5); border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); margin-block: var(--space-4); overflow-wrap: anywhere; }
+.panel h1,.panel h2,.panel p { margin-block: var(--space-3); }
+.panel label { display: grid; gap: var(--space-2); }
+.panel input,.panel select,.panel textarea,.panel button,.link { font: inherit; padding: var(--space-3); min-height:44px; border:1px solid var(--control-border); border-radius:var(--radius); background:var(--surface); color:var(--navy); }
+.panel button {cursor:pointer;} .panel button:disabled {opacity:.6;cursor:not-allowed;}
+.panel button:hover:not(:disabled),.panel button[aria-pressed=true] {background:var(--mint);}
+.actions,.slots { display:flex; flex-wrap:wrap; gap:var(--space-3); margin-block:var(--space-4); align-items:end; }
+.list {list-style:disc;padding-inline-start:var(--space-5);}
+.cards {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr));gap:var(--space-4);}
+.link {display:inline-flex;align-items:center;text-decoration:underline;}

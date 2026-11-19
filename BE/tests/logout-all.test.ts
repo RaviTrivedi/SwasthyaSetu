@@ -86,7 +86,7 @@ test('missing, malformed, expired, forged and invalid-claim tokens are rejected 
     for (const header of [undefined, 'Basic credentials', 'Bearer malformed', `Bearer ${f.issued.refreshToken}`, ...tokens.map(token => `Bearer ${token}`)]) {
       const response = await f.post(header);
       assert.equal(response.status, 401);
-      assert.deepEqual(await response.json(), { message: 'Unauthorized' });
+      assert.deepEqual(await response.json(), { message: 'A valid sign-in session is required. Sign in again and send your access cookie or Bearer token.' });
       assert.equal(response.headers.get('set-cookie'), null);
     }
     assert.equal(f.calls.length, 0);
@@ -98,7 +98,7 @@ test('logout-all database failures are sanitized and do not report success', asy
   try {
     const response = await f.post(`Bearer ${f.issued.accessToken}`);
     assert.equal(response.status, 500);
-    assert.deepEqual(await response.json(), { message: 'Internal server error' });
+    assert.deepEqual(await response.json(), { message: 'The server could not complete this request. Try again later; use the X-Request-ID response header when reporting the problem.' });
   } finally { await f.close(); }
 });
 
@@ -108,6 +108,7 @@ test('application logout-all route requires authentication', async () => {
   try {
     const response = await fetch(`http://127.0.0.1:${(server.address() as AddressInfo).port}/api/v1/auth/logout-all`, { method: 'POST', headers: { 'X-CSRF-Protection': '1' } });
     assert.equal(response.status, 401);
-    assert.deepEqual(await response.json(), { message: 'Unauthorized' });
+    assert.deepEqual(await response.json(), { message: 'A valid sign-in session is required. Sign in again and send your access cookie or Bearer token.' });
   } finally { await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())); }
 });
+

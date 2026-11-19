@@ -1,6 +1,6 @@
 import { getDatabase } from '../config/database.js';
 
-export function createSession(input: { userId: string; tokenHash: string; expiresAt: Date }) {
+export function createSession(input: { userId: string; tokenHash: string; expiresAt: Date; ipAddress?: string | null }) {
   return getDatabase().session.create({ data: input });
 }
 

@@ -62,7 +62,7 @@ test('admin reviews enforce current privileges, validation, safe projections and
     assert.equal((await request(`/${id}`)).status, 200);
     for (const path of [`/${randomUUID()}`, `/${randomUUID()}/status`]) {
       const response = await request(path, path.endsWith('/status') ? 'PATCH' : 'GET', path.endsWith('/status') ? { status: 'REJECTED', rejectionReason: 'Missing information' } : undefined);
-      assert.equal(response.status, 404); assert.deepEqual(await response.json(), { message: 'Not found' });
+      assert.equal(response.status, 404); assert.deepEqual(await response.json(), { message: 'The requested resource was not found. Check the endpoint URL, HTTP method, and resource ID.' });
     }
     for (const query of ['?page=0', '?pageSize=101', '?status=OTHER', '?role=ADMIN', '?page=1&page=2']) assert.equal((await request(query)).status, 400);
     assert.equal((await request('/invalid-uuid')).status, 400);
@@ -87,8 +87,8 @@ test('admin reviews enforce current privileges, validation, safe projections and
     assert.equal(row.rejectionReason, null);
     assert.equal((await request(`/${id}/status`, 'PATCH', { status: 'PENDING' })).status, 409);
     fail = true;
-    const failed = await request(); assert.equal(failed.status, 500); assert.deepEqual(await failed.json(), { message: 'Internal server error' });
-    assert.deepEqual(reviewSelect.applicant.select, { id: true, firstName: true, email: true });
+    const failed = await request(); assert.equal(failed.status, 500); assert.deepEqual(await failed.json(), { message: 'The server could not complete this request. Try again later; use the X-Request-ID response header when reporting the problem.' });
+    assert.deepEqual(reviewSelect.applicantPatient.select, { id: true, firstName: true, email: true });
     assert.equal('passwordHash' in reviewSelect, false);
   } finally {
     await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
@@ -101,3 +101,5 @@ test('admin review routes are mounted behind authentication', async () => {
   try { assert.equal((await fetch(`http://127.0.0.1:${(server.address() as AddressInfo).port}/api/v1/admin/facility-applications`)).status, 401); }
   finally { await new Promise<void>(resolve => server.close(() => resolve())); }
 });
+
+

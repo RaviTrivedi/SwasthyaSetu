@@ -27,7 +27,7 @@ export function createRegisterPatient(repository: UserRepository = userRepositor
 
     let user;
     try {
-      // Repository assigns PATIENT; no role or raw password is forwarded.
+      // The injected repository assigns the role; no role or raw password is forwarded.
       user = await repository.createUser({ firstName: input.firstName, email, passwordHash });
     } catch (error) {
       // The unique constraint also covers concurrent registrations after lookup.
@@ -49,3 +49,4 @@ export function createRegisterPatient(repository: UserRepository = userRepositor
 
 export const registerPatient = createRegisterPatient();
 export type RegisterPatient = ReturnType<typeof createRegisterPatient>;
+

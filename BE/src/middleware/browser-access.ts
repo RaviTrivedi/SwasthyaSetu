@@ -17,8 +17,11 @@ export const browserAccess: RequestHandler = (req, res, next) => {
   const origin = req.get("origin");
   // A custom header forces cross-origin browsers through preflight. Untrusted
   // origins cannot obtain permission to send it; HTML forms cannot set it.
-  if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method) && req.get('X-CSRF-Protection') !== '1') {
-    next(new HttpError(403, API_ERROR_MESSAGES.FORBIDDEN));
+  if (
+    !["GET", "HEAD", "OPTIONS"].includes(req.method) &&
+    req.get("X-CSRF-Protection") !== "1"
+  ) {
+    next(new HttpError(403, API_ERROR_MESSAGES.CSRF_HEADER_REQUIRED));
     return;
   }
   // Reject untrusted browser origins before any cookie-creating side effects.
@@ -40,7 +43,8 @@ export const browserAccess: RequestHandler = (req, res, next) => {
     // Allows credentialed browser requests; the frontend still needs
     // fetch(..., { credentials: 'include' }) to send/receive cookies cross-origin.
     credentials: true,
-    methods: ["GET", "POST", "PATCH", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-CSRF-Protection"],
   })(req, res, next);
 };
+

@@ -62,7 +62,7 @@ test('submission authenticates, validates, uses verified identity, and returns s
     ]) {
       const invalid = await post({ ...input, ...override });
       assert.equal(invalid.status, 400);
-      assert.deepEqual(await invalid.json(), { message: 'Invalid facility application input' });
+      assert.deepEqual(await invalid.json(), { message: 'Provide valid facility details, contact information, address, city, and at least one service. Status, applicant ID, and approval fields are assigned by the server.' });
     }
     assert.equal((await post({})).status, 400);
     assert.equal(calls.length, 1);
@@ -73,7 +73,7 @@ test('submission authenticates, validates, uses verified identity, and returns s
     fail = true;
     const failed = await post(input);
     assert.equal(failed.status, 500);
-    assert.deepEqual(await failed.json(), { message: 'Internal server error' });
+    assert.deepEqual(await failed.json(), { message: 'The server could not complete this request. Try again later; use the X-Request-ID response header when reporting the problem.' });
   } finally {
     await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
     if (previous === undefined) delete process.env.ACCESS_TOKEN_SECRET;
@@ -112,4 +112,40 @@ test('application mounts facility submission behind authentication', async () =>
   } finally {
     await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
   }
+});
+
+
+test('Doctor login cookies authorize submission; stale Authorization overrides a valid cookie', async () => {
+ const { createClinicAuthRouter } = await import('../src/routes/clinic/auth.routes.js');
+ const { createIssueSession } = await import('../src/services/patient/session.service.js');
+ const { browserAccess } = await import('../src/middleware/browser-access.js');
+ const previous = process.env.ACCESS_TOKEN_SECRET; process.env.ACCESS_TOKEN_SECRET = randomBytes(32).toString('hex');
+ const doctor = { id: randomUUID(), firstName: 'Doctor fixture', email: 'doctor@example.invalid', role: 'DOCTOR', createdAt: new Date() };
+ const issue = createIssueSession({ async createSession() {} });
+ let submissions = 0;
+ const application = express(); application.use(browserAccess);
+ application.use('/api/v1/clinic/auth', createClinicAuthRouter(undefined, async () => doctor, issue));
+ application.use('/api/v1/facilities', createFacilityApplicationRouter(async applicantId => {
+  submissions++; assert.equal(applicantId, doctor.id); return { ...record, applicantId };
+ }));
+ application.use(errorHandler);
+ const server = application.listen(0, '127.0.0.1'); await once(server, 'listening');
+ const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+ const headers = { 'Content-Type': 'application/json', 'X-CSRF-Protection': '1' };
+ try {
+  const login = await fetch(`${base}/api/v1/clinic/auth/login`, { method: 'POST', headers, body: JSON.stringify({ email: doctor.email, password: 'fixture-password' }) });
+  assert.equal(login.status, 200);
+  const cookie = login.headers.getSetCookie().find(value => value.startsWith('access_token='))!;
+  assert.match(cookie, /Path=\/api\/v1;/);
+  const submit = (auth?: string, sendCookie = true) => fetch(`${base}/api/v1/facilities/applications`, {
+   method: 'POST', headers: { ...headers, ...(sendCookie ? { Cookie: cookie.split(';')[0]! } : {}), ...(auth === undefined ? {} : { Authorization: auth }) }, body: JSON.stringify(input),
+  });
+  assert.equal((await submit()).status, 201);
+  assert.equal((await submit('Bearer expired-or-invalid')).status, 401);
+  assert.equal((await submit(undefined, false)).status, 401);
+  assert.equal(submissions, 1);
+ } finally {
+  await new Promise<void>(resolve => server.close(() => resolve()));
+  if (previous === undefined) delete process.env.ACCESS_TOKEN_SECRET; else process.env.ACCESS_TOKEN_SECRET = previous;
+ }
 });

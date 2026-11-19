@@ -38,7 +38,7 @@ async function fixture(mode: 'found' | 'unknown' | 'failure' | 'session-failure'
     API_ORIGIN: production ? 'https://api.example.test' : 'http://localhost:4000',
     ACCESS_TOKEN_SECRET: randomBytes(32).toString('hex'),
   });
-  const sessions: { userId: string; tokenHash: string; expiresAt: Date }[] = [];
+  const sessions: { userId: string; tokenHash: string; expiresAt: Date; ipAddress?: string | null }[] = [];
   const issue = createIssueSession({ async createSession(input) {
     if (mode === 'session-failure') throw new Error('private database failure');
     sessions.push(input);
@@ -58,7 +58,7 @@ async function fixture(mode: 'found' | 'unknown' | 'failure' | 'session-failure'
   const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}/api/v1/auth/login`;
   return {
     lookups, sessions, settings,
-    post(body: unknown) { return fetch(url, { method: 'POST', headers: { 'X-CSRF-Protection': '1', 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); },
+    post(body: unknown) { return fetch(url, { method: 'POST', headers: { 'X-CSRF-Protection': '1', 'Content-Type': 'application/json', 'X-Forwarded-For': '203.0.113.99' }, body: JSON.stringify(body) }); },
     raw(body: string) { return fetch(url, { method: 'POST', headers: { 'X-CSRF-Protection': '1', 'Content-Type': 'application/json' }, body }); },
     async close() { await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())); },
   };
@@ -79,9 +79,10 @@ test('login persists only a refresh hash and returns a signed access token and s
     const rawToken = cookie.split(';')[0]!.split('=')[1]!;
     assert.match(rawToken, /^[A-Za-z0-9_-]{43}$/);
     assert.equal(f.sessions.length, 1);
-    assert.deepEqual(Object.keys(f.sessions[0]!).sort(), ['expiresAt', 'tokenHash', 'userId']);
+    assert.deepEqual(Object.keys(f.sessions[0]!).sort(), ['expiresAt', 'ipAddress', 'tokenHash', 'userId']);
     assert.equal(f.sessions[0]!.tokenHash, createHash('sha256').update(rawToken).digest('hex'));
     assert.equal(f.sessions[0]!.userId, storedUser.id);
+    assert.equal(f.sessions[0]!.ipAddress, '127.0.0.1');
     assert.ok(f.sessions[0]!.expiresAt.getTime() > Date.now() + 29 * 86400000);
     const body = await response.json() as { user: unknown; accessToken: string };
     assert.deepEqual(Object.keys(body).sort(), ['user']);
@@ -137,7 +138,7 @@ test('invalid input and role injection fail before repository access', async () 
       const response = await f.post(body);
       assert.equal(response.status, 400);
       const result = await response.json() as { message: string };
-      assert.ok(['Invalid login input', 'Invalid JSON body'].includes(result.message));
+      assert.ok(['Provide a valid email address and a password. Extra fields such as role are not accepted.', 'The request body is not valid JSON. Check its syntax and send Content-Type: application/json.'].includes(result.message));
       assert.deepEqual(Object.keys(result), ['message']);
     }
     assert.equal(f.lookups.length, 0);
@@ -150,13 +151,13 @@ test('login sanitizes database failures and malformed or oversized bodies', asyn
   try {
     const failure = await f.post(credentials);
     assert.equal(failure.status, 500);
-    assert.deepEqual(await failure.json(), { message: 'Internal server error' });
+    assert.deepEqual(await failure.json(), { message: 'The server could not complete this request. Try again later; use the X-Request-ID response header when reporting the problem.' });
     const malformed = await f.raw('{"password":');
     assert.equal(malformed.status, 400);
-    assert.deepEqual(await malformed.json(), { message: 'Invalid JSON body' });
+    assert.deepEqual(await malformed.json(), { message: 'The request body is not valid JSON. Check its syntax and send Content-Type: application/json.' });
     const large = await f.post({ ...credentials, password: 'x'.repeat(17000) });
     assert.equal(large.status, 413);
-    assert.deepEqual(await large.json(), { message: 'Request body too large' });
+    assert.deepEqual(await large.json(), { message: 'The request body exceeds the size limit for this endpoint. Reduce the payload and try again.' });
   } finally { await f.close(); }
 });
 
@@ -168,7 +169,7 @@ test('application mounts POST login with the centralized error handler', async (
       method: 'POST', headers: { 'X-CSRF-Protection': '1', 'Content-Type': 'application/json' }, body: '{}',
     });
     assert.equal(response.status, 400);
-    assert.deepEqual(await response.json(), { message: 'Invalid login input' });
+    assert.deepEqual(await response.json(), { message: 'Provide a valid email address and a password. Extra fields such as role are not accepted.' });
   } finally {
     await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
   }
@@ -198,7 +199,7 @@ test('failed session persistence issues neither a cookie nor an access token', a
     const response = await f.post(credentials);
     assert.equal(response.status, 500);
     assert.equal(response.headers.get('set-cookie'), null);
-    assert.deepEqual(await response.json(), { message: 'Internal server error' });
+    assert.deepEqual(await response.json(), { message: 'The server could not complete this request. Try again later; use the X-Request-ID response header when reporting the problem.' });
   } finally { await f.close(); }
 });
 
@@ -226,8 +227,10 @@ test('credentialed CORS allows only the configured frontend and rejects hostile 
     const denied = await fetch(url, { method: 'POST', headers: { 'X-CSRF-Protection': '1', Origin: 'https://untrusted.invalid', 'Content-Type': 'application/json' }, body: '{}' });
     assert.equal(denied.status, 403);
     assert.equal(denied.headers.get('set-cookie'), null);
-    assert.deepEqual(await denied.json(), { message: 'Origin not allowed' });
+    assert.deepEqual(await denied.json(), { message: 'This website origin is not permitted to access the API. Use the configured frontend origin.' });
   } finally {
     await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
   }
 });
+
+

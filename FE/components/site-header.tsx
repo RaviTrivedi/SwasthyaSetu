@@ -1,7 +1,10 @@
-﻿'use client';
+'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { useSelectedLayoutSegment, useRouter } from 'next/navigation';
+import { logout } from './features/auth/api';
+import { useSession } from './features/auth/use-session';
+import { homeFor } from './features/auth/access-policy';
 import { useEffect, useRef, useState } from 'react';
 import styles from './site-header.module.css';
 
@@ -12,7 +15,8 @@ const navigation = [
 ];
 
 export default function SiteHeader() {
-  const pathname = usePathname();
+  const segment = useSelectedLayoutSegment();
+  const adminWorkspace = segment === 'admin';
   const [isOpen, setIsOpen] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
 
@@ -28,27 +32,12 @@ export default function SiteHeader() {
   function renderLinks() {
     return (
       <>
-        <ul className={styles.links}>
-          {navigation.map(({ href, label }) => (
-            <li key={href}>
-              <Link href={href} onClick={() => setIsOpen(false)}>
-                {label}
-              </Link>
-            </li>
-          ))}
-        </ul>
-        <Link
-          href="/sign-in"
-          className={styles.signIn}
-          onClick={() => setIsOpen(false)}
-        >
-          Sign in
-        </Link>
+        <HeaderAccount adminWorkspace={adminWorkspace} onNavigate={() => setIsOpen(false)} />
       </>
     );
   }
 
-  if (['/sign-in', '/sign-up'].includes(pathname)) {
+  if (segment === 'sign-in' || segment === 'sign-up') {
     return null;
   }
 
@@ -87,7 +76,7 @@ export default function SiteHeader() {
           </span>
         </button>
         <Link
-          href="/"
+          href={adminWorkspace ? '/admin' : '/'}
           className={styles.brand}
           aria-label="SwasthyaSetu home"
           onClick={() => setIsOpen(false)}
@@ -112,4 +101,32 @@ export default function SiteHeader() {
       </div>
     </header>
   );
+}
+
+function HeaderAccount({ onNavigate, adminWorkspace }: { onNavigate: () => void; adminWorkspace: boolean }) {
+  const router = useRouter();
+  const session = useSession();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  async function signOut() {
+    if (busy) return;
+    setBusy(true); setError('');
+    try { await logout(); onNavigate(); router.replace('/sign-in'); }
+    catch { setError('Unable to sign out. Please try again.'); }
+    finally { setBusy(false); }
+  }
+  if (session.error) return <button type="button" className={styles.signIn} onClick={session.retry}>Retry session check</button>;
+  if (session.user === undefined) return <span role="status" className={styles.sessionStatus}>Checking session...</span>;
+  const marketplaceLinks = !adminWorkspace && session.user?.role !== 'ADMIN' ? <ul className={styles.links}>
+    {navigation.map(({ href, label }) => <li key={href}><Link href={href} onClick={onNavigate}>{label}</Link></li>)}
+  </ul> : null;
+  if (!session.user) return <>{marketplaceLinks}<Link href="/sign-in" className={styles.signIn} onClick={onNavigate}>Sign in</Link></>;
+  return <>{marketplaceLinks}<div className={styles.account}>
+    {session.user.role !== 'ADMIN' && <Link href={session.user.role === 'PATIENT' ? '/appointments' : homeFor(session.user.role)} className={styles.signIn} onClick={onNavigate}>
+      {session.user.role === 'DOCTOR' ? 'Doctor workspace' : 'My appointments'}
+    </Link>}
+    <span className={styles.accountName}>{session.user.firstName}</span>
+    <button type="button" className={styles.signOut} disabled={busy} onClick={() => void signOut()}>{busy ? 'Signing out...' : 'Sign out'}</button>
+    {error && <span role="alert">{error}</span>}
+  </div></>;
 }

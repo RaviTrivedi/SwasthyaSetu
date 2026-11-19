@@ -1,19 +1,4 @@
-import { notFound } from 'next/navigation';
+﻿import {Suspense} from 'react';
 import FacilityOverview from '@/components/features/facilities/FacilityOverview';
-import {
-  facilities,
-  getFacility,
-} from '@/components/features/facilities/data/facilities';
-
-export function generateStaticParams() {
-  return facilities.map(({ id }) => ({ facilityId: id }));
-}
-
-export default async function FacilityPage({
-  params,
-}: PageProps<'/facilities/[facilityId]'>) {
-  const { facilityId } = await params;
-  const facility = getFacility(facilityId);
-  if (!facility) notFound();
-  return <FacilityOverview facility={facility} />;
-}
+export default function FacilityPage({params}:PageProps<'/facilities/[facilityId]'>){return <Suspense fallback={<p role="status">Loading facility...</p>}><Details params={params}/></Suspense>;}
+async function Details({params}:{params:Promise<{facilityId:string}>}){const {facilityId}=await params;return <FacilityOverview key={facilityId} facilityId={facilityId}/>;}

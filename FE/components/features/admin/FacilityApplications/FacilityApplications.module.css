@@ -1,0 +1,29 @@
+.panel { padding: var(--space-4); border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); overflow-wrap: anywhere; }
+.panel h2, .panel h3 { margin-block: var(--space-4); }
+.panel button, .panel select, .panel textarea { font: inherit; padding: var(--space-3); border: 1px solid var(--control-border); border-radius: var(--radius); background: var(--surface); color: var(--navy); min-height: 44px; }
+.panel button { cursor: pointer; }
+.panel button:hover:not(:disabled) { background: var(--mint); }
+.panel button:disabled { opacity: .55; cursor: not-allowed; }
+.panel textarea { display: block; width: 100%; margin-top: var(--space-2); }
+.filter, .actions { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; margin-block: var(--space-4); }
+.table { overflow-x: auto; }
+.table table { width: 100%; border-collapse: collapse; text-align: left; }
+.table th, .table td { padding: var(--space-3); border-bottom: 1px solid var(--border); vertical-align: top; }
+.table caption { text-align: left; color: var(--muted); padding-block: var(--space-3); }
+.details { display: grid; grid-template-columns: minmax(8rem, 1fr) minmax(0, 3fr); gap: var(--space-3); }
+.details dt { font-weight: 600; }
+.details dd { margin: 0; white-space: pre-wrap; }
+.services {
+  margin-block: var(--space-2) var(--space-4);
+  padding-inline-start: var(--space-6);
+  list-style: disc outside;
+}
+.services li {
+  padding-inline-start: var(--space-1);
+  line-height: 1.6;
+}
+.services li + li { margin-top: var(--space-2); }
+.services li::marker { color: var(--teal); }
+.review { border: 1px solid var(--border); padding: var(--space-4); margin-top: var(--space-4); border-radius: var(--radius); }
+.srOnly { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media (max-width: 500px) { .details { grid-template-columns: 1fr; } }

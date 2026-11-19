@@ -2,6 +2,90 @@
 
 Independent Express + TypeScript backend. Requires Node.js 20.19+ and npm.
 
+## Read-only Admin directories
+
+All routes below require an authenticated, currently active ADMIN account using
+the existing access cookie or Bearer token. Responses use `{ items, total, page,
+pageSize }`. Pagination defaults to page 1 and 20 items; pageSize is at most 100,
+page at most 100000. Unknown, repeated, or malformed query parameters return 400.
+These are read-only APIs; there are no role-editing or audit-log endpoints.
+
+- `GET /api/v1/admin/doctors`: optional `applicationStatus=PENDING|APPROVED|REJECTED`
+  filters doctors having at least one matching application. Returns id, firstName,
+  email, role, disabledAt, createdAt and all application summaries (id, facilityName,
+  status, and nullable facility with id/name/type). Multiple applications are kept;
+  no arbitrary facility is selected. Accounts without applications appear without
+  this filter. Sorted by createdAt descending, then id descending.
+- `GET /api/v1/admin/users`: optional `role=PATIENT|ADMIN|DOCTOR`. Returns id,
+  firstName, email, role, disabledAt and createdAt across the existing three account
+  tables, with one globally ordered page (createdAt descending, then id descending).
+- `GET /api/v1/admin/appointment-slots`: optional `facilityId` UUID,
+  `status=AVAILABLE|BOOKED|UNAVAILABLE`, and `from`/`to` ISO timestamps with explicit
+  timezone (for example `2030-01-01T00:00:00Z`). The start-time range includes from
+  and excludes to; when both are supplied, from must precede to. Returns id,
+  startsAt, endsAt, status, nullable appointmentStatus, and facility id,
+  facilityName and nullable timezone. Times serialize as UTC ISO timestamps;
+  sort order is startsAt ascending, then id ascending. BOOKED means a reservation
+  timestamp or linked appointment exists (including historical PENDING appointments).
+  AVAILABLE means an unreserved future slot belonging to an approved application
+  with an active Doctor owner. Everything else is UNAVAILABLE. This lists persisted
+  slots only; it never generates slots or changes bookings.
+
+Each list/count pair uses one repeatable-read database snapshot. Explicit safe
+projections exclude password/reset/session data and patient appointment details.
+No schema change or migration is needed for these endpoints.
+
+## Current account storage (supersedes historical migration notes below)
+
+There are exactly three login-account tables: Patient, Admin and Doctor. There
+is no User or Account table after migration 20261104010000_separate_accounts.
+Each stores its own name, email, passwordHash, roleId, disabledAt and timestamps.
+Each roleId references the existing roles table; valid mappings are PATIENT,
+ADMIN and DOCTOR respectively. Doctor means a clinic/hospital member account in
+this project, not proof of professional qualifications or facility approval.
+
+Patient signup uses /api/v1/auth/register; clinic member signup/signin remains at
+/api/v1/clinic/auth/register and /login, assigning DOCTOR. Admin provisioning and
+/api/v1/admin/auth/login use Admin. All still use the existing cookie/session flow.
+No account needs a facility profile to register or sign in. Public signup never
+accepts roleId or a role and never creates an admin account.
+
+Email is normalized and unique across all three tables, enforced by PostgreSQL
+triggers, including concurrent writes. IDs are globally unique too. Identity
+inserts/email/role changes require READ COMMITTED isolation; the trigger rejects
+higher-isolation identity writes to prevent stale duplicate checks. Application
+repositories use the default READ COMMITTED mode. Role names are not editable
+through any API. Sessions/applications retain verified account IDs and foreign
+keys to exactly one account table, enforced by database constraints.
+
+PasswordResetToken was replaced with resetTokenHash and resetExpiresAt on each
+account. Only hashes are stored; tokens expire after 30 minutes. A new request
+replaces the previous link. Confirmation atomically changes the password, clears
+the reset fields and revokes sessions. Delivery failure clears only that link,
+not a newer request's token. The migration preserves the latest active reset
+link per account; older links become invalid.
+
+FacilityApplicationReopening was removed. Admin review/reopening still updates
+status, reviewer, review time and rejection reason atomically on FacilityApplication;
+previous review history is no longer retained. The Facility table is unchanged.
+
+Session.ipAddress records the IP at login; existing sessions have null. Express
+uses the direct connection IP and ignores untrusted X-Forwarded-For headers.
+Behind a reverse proxy this will be the proxy IP until you explicitly configure
+trust proxy for your actual trusted proxy addresses. Do not blindly trust all
+forwarded headers. IP is diagnostic metadata, never an authentication factor,
+and is not returned in login responses or access tokens.
+
+Deployment: stop the API, back up your database, run `npm run db:migrate`, then
+`npm run db:generate` and `npm run build`, and restart. The schema/client changes
+must deploy together. This migration has been tested on a disposable local
+database but has NOT been applied to your configured database. Existing IDs,
+passwords and sessions are preserved; ORGANIZATION/STAFF become DOCTOR. Refresh
+or sign in again to receive updated role claims. The removed review-history
+and older reset-link data are intentionally not retained. Historical migrations
+remain untouched. Run `npm run test:accounts:db` and the existing database test
+scripts only against a migrated local development database.
+
 ## Local development
 
 Run from `BE/`:
@@ -728,3 +812,266 @@ Run `npm run db:migrate`, `npm run db:generate`, and rebuild/restart the API. Th
 is no database reset and no editing of Prisma's applied migration history. The
 platform roles remain PATIENT, ADMIN, DOCTOR and STAFF, as before the split.
 Organization roles and profile tables are deferred.
+
+## Clinic/hospital signup and signin
+
+Clinic and hospital members can create a normal login account without a facility
+application, approval, or public profile. Accounts use separate Patient, Admin and Doctor tables;
+email is unique across patients, admins and doctors. Signup assigns
+DOCTOR on the server. It does not grant admin privileges or membership of
+any existing facility. Existing ORGANIZATION/STAFF accounts migrate to Doctor.
+
+POST /api/v1/clinic/auth/register:
+```json
+{ "firstName": "Ravi", "email": "member@example.com", "password": "ChooseAStrongPassword123!" }
+```
+Returns 201 with id, firstName, email, role and createdAt. No session is created
+until signin. The name is trimmed (1-100 characters), email trimmed/lowercased,
+and password is 8-128 characters. Role and other unknown fields are rejected.
+An email already used by any account returns 409.
+
+POST /api/v1/clinic/auth/login accepts email and password only. It returns 200
+with `{ "user": { ...safeFields } }` and the existing HttpOnly access/refresh
+cookies. Unknown email, wrong password, disabled account and a different account
+role all return the same 401. Send Content-Type: application/json and
+X-CSRF-Protection: 1; browsers use credentials: include and an allowed origin.
+Use /api/v1/auth/me, /refresh, /logout, /logout-all and /password-reset/request
+and /password-reset/confirm under that same /api/v1/auth prefix for account
+lifecycle operations. Neither tokens nor password hashes appear in responses.
+
+Apply pending migrations with `npm run db:migrate` before using these new
+endpoints, then restart the backend. Facility profile APIs are separate optional
+functionality; signup/signin never calls them. No frontend changes are required
+for testing these endpoints in Postman.
+
+## Request error logs
+
+Run `npm run dev` and watch the backend terminal. Centralized request errors are
+logged as JSON: 4xx errors use console.warn and 5xx errors use console.error.
+Each log contains a generated requestId, method, server-defined route template,
+status, safe message and error type. The response includes X-Request-ID so you can
+match a Postman/browser failure to its terminal entry. Existing response bodies
+are unchanged. Errors occurring before route matching use a placeholder route.
+
+Prisma failures include a code and troubleshooting hint. For example, P2025 on
+clinic signup can mean the DOCTOR role has not been inserted yet; check
+`npm run db:migrate`. This is a diagnostic possibility, not a guaranteed cause.
+Development logs include source file/line locations; production omits them.
+Raw exception messages/stacks, request bodies, URLs/query strings, cookies,
+authorization headers and database metadata are deliberately not logged because
+they may contain passwords, tokens, credentials or personal information.
+
+
+## Admin and clinic password recovery
+
+Both account types now have public recovery endpoints (no login required):
+
+| Account | Request link | Confirm new password |
+| --- | --- | --- |
+| Admin | POST /api/v1/admin/auth/forgot-password | POST /api/v1/admin/auth/reset-password |
+| Clinic/Doctor | POST /api/v1/clinic/auth/forgot-password | POST /api/v1/clinic/auth/reset-password |
+
+Request body: `{ "email": "member@example.com" }`.
+Confirm body: `{ "token": "token-from-email-link", "newPassword": "NewStrongPassword123!" }`.
+Both prefixes also support `/password-reset/request` and `/password-reset/confirm`
+for consistency with the existing patient routes. Send Content-Type: application/json
+and X-CSRF-Protection: 1; browsers must use an allowed origin and include credentials.
+
+The admin endpoints only operate on Admin accounts; clinic endpoints only operate
+on Doctor accounts. Unknown emails and emails of another account type receive the
+same generic 200 response. A token for another account type returns the same generic
+400 as an invalid/expired/used token and is not consumed. The existing shared
+/api/v1/auth/password-reset routes retain their previous compatibility behavior.
+
+The same configured Resend delivery, frontend reset URL, 30-minute hashed tokens,
+Argon2id password policy (8-128 characters), atomic token consumption, session
+revocation and cookie clearing are reused. No new table, migration, or email
+credentials are required. The reset page should submit to its account-specific
+endpoint; the existing common reset URL remains usable through the shared endpoint.
+
+## Actionable API errors
+
+Errors keep the `{ "message": "..." }` response shape and existing HTTP status codes.
+CSRF failures explicitly request `X-CSRF-Protection: 1`; admin authorization failures
+explain that an active platform admin account is required. Missing/invalid sessions
+explain how to sign in and send authentication. JSON, input and reset errors explain
+what to check next. Login still uses the same generic response for unknown email,
+wrong password and an account of another type, to avoid account enumeration.
+Unexpected server failures stay generic; match X-Request-ID to the safe backend log
+for diagnostic codes. Database/provider errors and raw request values are never
+included in public error responses.
+
+## Doctor facility operations
+
+The existing clinic/provider layer now serves these Doctor-only endpoints:
+
+- GET/PATCH `/api/v1/doctor/facility`: read/update the owned approved profile.
+- GET/POST `/api/v1/doctor/facility/services`: list/add service records.
+- PATCH/DELETE `/api/v1/doctor/facility/services/:serviceId`: rename/remove an owned service.
+
+These require an active DOCTOR account, access cookie or Bearer token, and the
+existing CSRF header on writes. Patient/admin accounts receive 403. Ownership and
+approved status are checked in the repository as well as role authorization.
+No profile (including pending/rejected applications) returns 404; multiple approved
+applications return 409. Another facility's service ID returns 404.
+
+Existing `/api/v1/facilities/me` profile creation/read/update remains compatible;
+creation is explicit after approval. These new routes do not create a profile on
+GET or change admin approval behavior. Use the existing POST `/facilities/me`
+with complete profile fields to create it first. No new Doctor/staff profile is added.
+
+PATCH profile accepts the existing editable fields only. Service POST/PATCH accepts
+exactly `{ "name": "Consultation" }` (trimmed, 1-100 characters). Service responses
+contain only id, name, createdAt, updatedAt; GET returns an array, POST returns 201,
+PATCH returns 200, DELETE returns 204. Maximum 50 services; deleting all is allowed.
+Profile PATCH services remains a full replacement (1-50 names), retaining IDs for
+unchanged names. Profile responses still expose `services: string[]`. A renamed
+service through its ID keeps that ID. Duplicate names remain supported for backward
+compatibility. Serializable conflicts return 409 and may be retried.
+
+Migration `20261106000000_facility_services` copies all existing Facility.services
+names and ordering into FacilityService before removing the old array column.
+FacilityApplication.services is unchanged. Stop the API and back up the database;
+run `npm run db:migrate`, `npm run db:generate`, `npm run build`, then restart.
+Do not run the old application build against the new schema. This migration has
+not been applied to the configured database by this implementation.
+
+## Facility opening hours and slots
+
+Doctor owner APIs (same authentication, active-role, approved-ownership and CSRF
+rules as the other Doctor facility routes):
+
+- GET `/api/v1/doctor/facility/opening-hours`
+- PUT `/api/v1/doctor/facility/opening-hours`
+- GET `/api/v1/doctor/facility/slots?date=2030-01-01`
+- GET `/api/v1/doctor/facility/slots?from=2030-01-01&to=2030-01-07`
+
+PUT replaces the complete schedule and requires all seven unique days, Sunday=0
+through Saturday=6. Empty periods means closed. Example:
+
+```json
+{
+  "timezone": "Asia/Kolkata",
+  "days": [
+    { "day": 0, "periods": [] },
+    { "day": 1, "periods": [{ "open": "09:00", "close": "11:00" }, { "open": "14:00", "close": "17:00" }] },
+    { "day": 2, "periods": [{ "open": "09:00", "close": "17:00" }] },
+    { "day": 3, "periods": [{ "open": "09:00", "close": "17:00" }] },
+    { "day": 4, "periods": [{ "open": "09:00", "close": "17:00" }] },
+    { "day": 5, "periods": [{ "open": "09:00", "close": "17:00" }] },
+    { "day": 6, "periods": [] }
+  ]
+}
+```
+
+Times are zero-padded 24-hour HH:mm in the supplied IANA timezone. No overnight
+periods or 24:00; open must precede close. Up to 12 non-overlapping periods per
+day, adjacent periods allowed. Slots start at each period's opening and advance
+30 minutes, with a full 30 minutes required before closing. Partial tails are
+ignored. DST missing/ambiguous minutes and slots crossing those transitions are
+skipped, never silently shifted. UTC timestamps are returned with timezone metadata.
+Dates are interpreted in the current facility timezone, including preserved bookings.
+
+GET slots materializes only the requested dates (maximum 31 inclusive, from local
+today through today+365 days). Past dates are rejected; earlier times today are
+excluded. It returns `{ timezone, intervalMinutes: 30, slots: [{ id, startsAt,
+endsAt, booked }] }`. GET/PUT hours returns `{ timezone, days }`; no configured
+schedule returns 404. Missing approved facility returns 404; multiple approved
+applications return 409. IDs, interval and booking markers cannot be supplied.
+
+Slots persist with unique (facilityId, startsAt) and a 30-minute database check.
+Repeated generation preserves IDs. PUT deletes only future unbooked slots; booked
+and historical rows remain unchanged, even after timezone changes. New availability
+cannot overlap a booked slot. Generation and replacement lock the facility row in
+serializable transactions; a concurrent conflict returns a safe 409 for retry.
+The future booking implementation must lock the same facility, revalidate slot
+availability and atomically set bookedAt. bookedAt is only a reservation marker;
+there is no Booking model, booking API or cancellation API in this step.
+
+Apply additive migration `20261113000000_facility_opening_hours` with the API stopped:
+`npm run db:migrate`, `npm run db:generate`, `npm run build`, then restart. Existing
+facilities have no configured schedule until PUT. No existing data is changed by
+the migration. The migration is supplied but not applied to the configured database.
+
+## Patient appointment booking
+
+POST `/api/v1/patient/appointments` requires an active PATIENT account (access
+cookie or Bearer token). Send `Content-Type: application/json` and
+`X-CSRF-Protection: 1`. Example:
+
+```json
+{ "slotId": "00000000-0000-4000-8000-000000000001", "appointmentNote": "General consultation" }
+```
+
+Use an actual generated slot UUID. appointmentNote is optional, trimmed, 1-2000
+characters when supplied. All other fields are rejected. Patient identity comes
+only from verified authentication, never from body/query. No patient-profile setup
+is required beyond the existing active Patient account.
+
+Success is 201 with `{ id, facility: { id, facilityName, facilityType, address,
+city, timezone }, slot: { startsAt, endsAt }, status: "BOOKED", createdAt }`.
+The note and unrelated patient data are not returned or logged. Invalid input is
+400; unauthenticated is 401; non-patient/disabled is 403. Missing, past, reserved,
+or non-approved-facility slots all return the same 409 unavailable message.
+A facility's Doctor account must also remain active. UTC slot instants and the
+existing 30-minute duration are preserved. Successful bookings immediately confirm the appointment with status BOOKED; no facility review is required.
+
+Booking locks the same Facility row used by schedule writes, holds the application
+approval row for the transaction, conditionally sets bookedAt only on a future
+unreserved slot, and inserts the appointment atomically. A unique Appointment.slotId
+constraint prevents a second appointment; any insertion failure rolls back the
+reservation. Schedule replacement continues preserving booked slots.
+
+No approval/rejection, cancellation, notifications, guest booking or patient slot
+search endpoint is added. For API testing, obtain slot IDs from the existing Doctor
+slot-generation endpoint. Only the Patient account can submit the booking request.
+
+Additive migration: `20261113010000_patient_appointments`. With the API stopped,
+run `npm run db:migrate`, `npm run db:generate`, `npm run build`, then restart.
+The migration has not been applied by this implementation. Existing data is kept.
+`npm test` includes mocked booking tests. After migrating a local test database,
+`npm run test:appointments:db` tests actual concurrent reservations, approval/past
+checks and preservation on schedule replacement, cleaning only its UUID fixtures.
+
+
+Immediate confirmation adds migrations `20261113020000_appointment_booked_status`
+and `20261113020100_appointment_booked_default`. The enum addition is committed
+before the new value is used as a default (PostgreSQL requirement). New API
+appointments explicitly use BOOKED. Existing PENDING records and their slot
+reservations remain unchanged; no historical records are auto-confirmed. Apply
+with the API stopped using `npm run db:migrate`, then `npm run db:generate` and
+`npm run build`, and restart. These migrations have not been applied here.
+
+
+Concurrency verification: `npm run test:appointments:db` now submits two real HTTP
+requests for one slot using different authenticated Patients and checks for exactly
+one 201 BOOKED response, one 409, one appointment and a reserved slot. It also
+forces a database insert failure with an oversized note (bypassing HTTP validation
+only inside the test), checks the reservation rolled back, and books that slot
+successfully afterward. Requires all migrations, including both BOOKED migrations.
+No additional schema migration is needed for the concurrency guards.
+
+GET /api/v1/doctor/facility/application-status is a read-only, active-Doctor-only
+endpoint for frontend workspace routing. It scopes applications to the verified
+Doctor and returns only application id/name/status, approvedCount and
+profileAvailable. It does not expose reviewer/account details or change approval.
+No migration is needed.
+
+## Patient marketplace and booking
+
+Public reads added for the frontend: GET /api/v1/facilities (page/pageSize,
+query=facility-name search, city, facilityType), GET /api/v1/facilities/:facilityId,
+and GET /api/v1/facilities/:facilityId/slots?date=YYYY-MM-DD. Only approved facilities
+with an active Doctor owner are visible. Public projections omit account/contact
+person details, application review data, secrets, and appointment/patient records.
+Slots expose only id, UTC startsAt/endsAt and booked, plus facility timezone and
+intervalMinutes=30. Dates are facility-local, from today through 365 days ahead.
+A facility without a schedule returns an empty slot list and null timezone.
+
+Availability reuses the existing generator and persists missing slots idempotently;
+it never reserves or cancels slots. It uses the same facility lock as schedule
+editing/booking and locks application approval during generation. The booking POST
+remains Patient-only and retains its atomic reservation/unique slot constraint.
+No schema changes or migrations are needed. Run npm test, npm run typecheck,
+npm run db:validate and npm run build. Marketplace repository tests mock database
+access; existing booking/slot tests cover reservation and generation behavior.

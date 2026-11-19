@@ -32,9 +32,10 @@ test('PostgreSQL serializes refresh and replay revokes the winning session famil
     assert.equal((await db.session.findUniqueOrThrow({ where: { id: expired.id } })).tokenHash, expired.tokenHash);
   } finally {
     // Remove only this test's UUID-owned fixture; sessions cascade with it.
-    await db.user.deleteMany({ where: { id } });
+    await db.patient.deleteMany({ where: { id } });
     await disconnectDatabase();
   }
 });
+
 
 

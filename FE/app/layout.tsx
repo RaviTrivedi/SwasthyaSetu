@@ -1,3 +1,5 @@
+import { Suspense } from 'react';
+import AccessGate from '@/components/features/auth/AccessGate';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import SiteHeader from '@/components/site-header';
@@ -28,14 +30,15 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
         <a href="#main-content" className="skip-link">
           Skip to main content
         </a>
-        <SiteHeader />
+        <Suspense fallback={null}><SiteHeader /></Suspense>
         <main id="main-content" className="container page-shell" tabIndex={-1}>
-          {children}
+          <Suspense fallback={<p role="status">Checking your session...</p>}><AccessGate>{children}</AccessGate></Suspense>
         </main>
-        <AuthChromeVisibility>
+        <Suspense fallback={null}><AuthChromeVisibility>
           <Footer />
-        </AuthChromeVisibility>
+        </AuthChromeVisibility></Suspense>
       </body>
     </html>
   );
 }
+

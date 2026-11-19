@@ -14,7 +14,7 @@ export function createIssueSession(
   repository: SessionRepository = sessionRepository,
   config = sessionConfig
 ) {
-  return async (user: Awaited<ReturnType<LoginPatient>>) => {
+  return async (user: Awaited<ReturnType<LoginPatient>>, ipAddress: string | null = null) => {
     const settings = config();
     const now = Math.floor(Date.now() / 1000);
     const refreshToken = randomBytes(32).toString("base64url");
@@ -26,7 +26,7 @@ export function createIssueSession(
       .setIssuedAt(now)
       .setExpirationTime(now + settings.accessTtlSeconds)
       .sign(settings.signingKey);
-    await repository.createSession({ userId: user.id, tokenHash, expiresAt });
+    await repository.createSession({ userId: user.id, tokenHash, expiresAt, ipAddress });
     return {
       accessToken,
       accessExpiresAt: new Date((now + settings.accessTtlSeconds) * 1000),

@@ -14,11 +14,11 @@ export function createRequireAdmin(
   return async (_req, res, next) => {
     const { userId, role } = getAuthentication(res);
     if (role !== Role.ADMIN)
-      throw new HttpError(403, API_ERROR_MESSAGES.FORBIDDEN);
+      throw new HttpError(403, API_ERROR_MESSAGES.ADMIN_REQUIRED);
     // Re-check current privileges so a demoted or disabled admin cannot use an old JWT.
     const user = await findUser(userId);
     if (!user || user.disabledAt || user.role !== Role.ADMIN) {
-      throw new HttpError(403, API_ERROR_MESSAGES.FORBIDDEN);
+      throw new HttpError(403, API_ERROR_MESSAGES.ADMIN_REQUIRED);
     }
     next();
   };

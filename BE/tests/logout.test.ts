@@ -90,7 +90,7 @@ test('database failures clear the cookie but return only a sanitized error', asy
   try {
     const response = await f.post(`refresh_token=${f.token}`);
     assert.equal(response.status, 500);
-    assert.deepEqual(await response.json(), { message: 'Internal server error' });
+    assert.deepEqual(await response.json(), { message: 'The server could not complete this request. Try again later; use the X-Request-ID response header when reporting the problem.' });
     cleared(response, false);
   } finally { await f.close(); }
 });
@@ -105,3 +105,4 @@ test('POST logout is mounted in the application', async () => {
     assert.match(response.headers.get('set-cookie')!, /^refresh_token=;/);
   } finally { await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())); }
 });
+

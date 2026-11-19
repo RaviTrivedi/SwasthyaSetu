@@ -1,19 +1,34 @@
 import { getDatabase } from '../config/database.js';
+import type { Prisma } from '../generated/prisma/client.js';
 import { Role } from '../constants/roles.js';
 
+type Account = { id: string; firstName: string; email: string; passwordHash: string; role: { name: string }; disabledAt: Date | null; createdAt: Date; updatedAt: Date };
+export function accountCredentials(user: Account) {
+  return { id: user.id, firstName: user.firstName, email: user.email, passwordHash: user.passwordHash,
+    role: user.role.name, disabledAt: user.disabledAt, createdAt: user.createdAt, updatedAt: user.updatedAt };
+}
 export async function createUser(input: { firstName: string; email: string; passwordHash: string }) {
-  const user = await getDatabase().user.create({ data: { ...input, email: input.email.trim().toLowerCase(),
-    role: { connect: { name: Role.PATIENT } } }, include: { role: true } });
-  const { roleId: _roleId, ...identity } = user; return { ...identity, role: user.role.name };
+  return accountCredentials(await getDatabase().patient.create({ data: {
+    firstName: input.firstName, email: input.email.trim().toLowerCase(), passwordHash: input.passwordHash,
+    role: { connect: { name: Role.PATIENT } },
+  }, include: { role: true } }));
+}
+// IDs and normalized emails are globally unique, enforced by database triggers.
+export async function findIdentity(where: { id: string } | { email: string }, db: Prisma.TransactionClient = getDatabase()) {
+  for (const kind of ['patient', 'admin', 'doctor'] as const) {
+    const user = await (db[kind] as typeof db.patient).findUnique({ where, include: { role: true } });
+    if (user) return { kind, user };
+  }
+  return null;
 }
 export async function findUserByEmail(email: string) {
-  const user = await getDatabase().user.findUnique({ where: { email: email.trim().toLowerCase() }, include: { role: true } });
-  if (!user) return null; const { roleId: _roleId, ...identity } = user; return { ...identity, role: user.role.name };
+  const identity = await findIdentity({ email: email.trim().toLowerCase() });
+  return identity ? accountCredentials(identity.user) : null;
 }
 export async function findUserProfileById(id: string) {
-  const user = await getDatabase().user.findUnique({ where: { id }, select: {
-    id: true, firstName: true, email: true, role: { select: { name: true } }, createdAt: true, disabledAt: true,
-  } });
-  return user ? { ...user, role: user.role.name } : null;
+  const identity = await findIdentity({ id });
+  if (!identity) return null;
+  const { user } = identity;
+  return { id: user.id, firstName: user.firstName, email: user.email, role: user.role.name, createdAt: user.createdAt, disabledAt: user.disabledAt };
 }
 

@@ -59,18 +59,19 @@ test('repository scopes reads and writes to enabled owners and approved applicat
  const { accessOwnedProfile } = await import('../src/repositories/facility-profile.repository.js');
  const previous = process.env.DATABASE_URL; process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test';
  const db = getDatabase(); const original = db.$transaction; const owner = randomUUID();
- let rows: { id: string; facility: typeof profile | null }[] = [];
+ const storedProfile = { ...profile, services: profile.services.map(name => ({ id: randomUUID(), name, createdAt: new Date(), updatedAt: new Date() })) };
+ let rows: { id: string; facility: typeof storedProfile | null }[] = [];
  let writes = 0;
  const fake = {
   facilityApplication: { async findMany(args: { where: unknown; take: number }) {
-   assert.deepEqual(args.where, { applicantId: owner, status: 'APPROVED', applicant: { disabledAt: null } }); assert.equal(args.take, 2); return rows;
+   assert.deepEqual(args.where, { applicantId: owner, status: 'APPROVED', OR: [{ applicantPatient: { disabledAt: null } }, { applicantAdmin: { disabledAt: null } }, { applicantDoctor: { disabledAt: null } }] }); assert.equal(args.take, 2); return rows;
   } },
   facility: {
    async updateMany(args: { where: unknown; data: unknown }) {
-    writes++; assert.deepEqual(args.where, { id: profile.id, application: { applicantId: owner, status: 'APPROVED', applicant: { disabledAt: null } } });
-    assert.deepEqual(args.data, { city: 'Mumbai' }); return { count: 1 };
+    writes++; assert.deepEqual(args.where, { id: profile.id, application: { applicantId: owner, status: 'APPROVED', OR: [{ applicantPatient: { disabledAt: null } }, { applicantAdmin: { disabledAt: null } }, { applicantDoctor: { disabledAt: null } }] } });
+    assert.equal((args.data as { city: string }).city, 'Mumbai'); return { count: 1 };
    },
-   async findUniqueOrThrow() { return { ...profile, city: 'Mumbai' }; },
+   async findUniqueOrThrow() { return { ...storedProfile, city: 'Mumbai' }; },
   },
  };
  db.$transaction = (async (callback: (tx: typeof fake) => unknown) => callback(fake)) as unknown as typeof db.$transaction;
@@ -79,7 +80,7 @@ test('repository scopes reads and writes to enabled owners and approved applicat
   assert.equal((await accessOwnedProfile(owner)).outcome, 'missing');
   assert.equal((await accessOwnedProfile(owner, { city: 'Mumbai' })).outcome, 'missing');
   rows = [{ id: randomUUID(), facility: null }]; assert.equal((await accessOwnedProfile(owner)).outcome, 'missing');
-  rows = [{ id: randomUUID(), facility: profile }, { id: randomUUID(), facility: profile }];
+  rows = [{ id: randomUUID(), facility: storedProfile }, { id: randomUUID(), facility: storedProfile }];
   assert.equal((await accessOwnedProfile(owner, { city: 'Mumbai' })).outcome, 'multiple'); assert.equal(writes, 0);
   rows = rows.slice(0, 1);
   assert.equal((await accessOwnedProfile(owner)).outcome, 'found'); assert.equal(writes, 0);
@@ -116,3 +117,5 @@ test('explicit profile creation requires approved ownership, validates input and
   }
  } finally { await new Promise<void>(resolve => server.close(() => resolve())); if (previous === undefined) delete process.env.ACCESS_TOKEN_SECRET; else process.env.ACCESS_TOKEN_SECRET = previous; }
 });
+
+

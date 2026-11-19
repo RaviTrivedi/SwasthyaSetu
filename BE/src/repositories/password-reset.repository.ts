@@ -1,33 +1,38 @@
 import { getDatabase } from '../config/database.js';
+import { findIdentity } from './user.repository.js';
 
-export function findResetUser(email: string) {
-  return getDatabase().user.findUnique({ where: { email }, select: { id: true, email: true } });
+export async function findResetUser(email: string, kind?: 'patient' | 'admin' | 'doctor') {
+  if (kind) return (getDatabase()[kind] as ReturnType<typeof getDatabase>['patient']).findUnique({ where: { email: email.trim().toLowerCase() }, select: { id: true, email: true } });
+  const identity = await findIdentity({ email: email.trim().toLowerCase() });
+  return identity ? { id: identity.user.id, email: identity.user.email } : null;
 }
-
-export function createResetToken(input: { userId: string; tokenHash: string; expiresAt: Date }) {
-  return getDatabase().passwordResetToken.create({ data: input, select: { id: true } });
+export async function createResetToken(input: { userId: string; tokenHash: string; expiresAt: Date }, kind?: 'patient' | 'admin' | 'doctor') {
+  const identity = await findIdentity({ id: input.userId });
+  if (!identity || (kind && identity.kind !== kind)) throw new Error('Reset account unavailable');
+  await (getDatabase()[identity.kind] as ReturnType<typeof getDatabase>["patient"]).update({ where: { id: input.userId }, data: { resetTokenHash: input.tokenHash, resetExpiresAt: input.expiresAt } });
+  // A failure revokes only this particular link, never a newer request's link.
+  return { id: input.tokenHash };
 }
-
-export function revokeResetToken(id: string) {
-  return getDatabase().passwordResetToken.updateMany({ where: { id, usedAt: null, revokedAt: null }, data: { revokedAt: new Date() } });
+export async function revokeResetToken(tokenHash: string, accountKind?: 'patient' | 'admin' | 'doctor') {
+  let count = 0;
+  for (const kind of accountKind ? [accountKind] : ['patient', 'admin', 'doctor'] as const) {
+    count += (await (getDatabase()[kind] as ReturnType<typeof getDatabase>["patient"]).updateMany({ where: { resetTokenHash: tokenHash }, data: { resetTokenHash: null, resetExpiresAt: null } })).count;
+  }
+  return { count };
 }
-
-export function consumeResetToken(tokenHash: string, passwordHash: string) {
-  return getDatabase().$transaction(async (tx) => {
-    const record = await tx.passwordResetToken.findUnique({ where: { tokenHash }, select: { id: true, userId: true } });
-    if (!record) return false;
-    // Serialize all reset confirmations for this user before touching token rows.
-    await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${record.userId}::UUID FOR UPDATE`;
-    const now = new Date();
-    const consumed = await tx.passwordResetToken.updateMany({
-      where: { id: record.id, usedAt: null, revokedAt: null, expiresAt: { gt: now } },
-      data: { usedAt: now },
-    });
-    if (consumed.count !== 1) return false;
-    await tx.user.update({ where: { id: record.userId }, data: { passwordHash } });
-    await tx.session.updateMany({ where: { userId: record.userId, revokedAt: null, expiresAt: { gt: now } }, data: { revokedAt: now } });
-    await tx.passwordResetToken.updateMany({ where: { userId: record.userId, usedAt: null, revokedAt: null }, data: { revokedAt: now } });
-    return true;
+export async function consumeResetToken(tokenHash: string, passwordHash: string, accountKind?: 'patient' | 'admin' | 'doctor') {
+  return getDatabase().$transaction(async tx => {
+    for (const kind of accountKind ? [accountKind] : ['patient', 'admin', 'doctor'] as const) {
+      const user = await (tx[kind] as typeof tx.patient).findUnique({ where: { resetTokenHash: tokenHash }, select: { id: true } });
+      if (!user) continue;
+      const now = new Date();
+      const result = await (tx[kind] as typeof tx.patient).updateMany({ where: { id: user.id, resetTokenHash: tokenHash, resetExpiresAt: { gt: now } },
+        data: { passwordHash, resetTokenHash: null, resetExpiresAt: null } });
+      if (result.count !== 1) return false;
+      await tx.session.updateMany({ where: { userId: user.id, revokedAt: null, expiresAt: { gt: now } }, data: { revokedAt: now } });
+      return true;
+    }
+    return false;
   });
 }
 

@@ -12,26 +12,63 @@ datasource db {
 model Role {
   id Int @id @default(autoincrement())
   name String @unique @db.VarChar(50)
-  users User[]
+  patients Patient[]
+  admins Admin[]
+  doctors Doctor[]
 
   @@map("roles")
 }
 
-model User {
-  id           String   @id @default(uuid()) @db.Uuid
-  firstName    String   @db.VarChar(100)
-  email        String   @unique @db.VarChar(254)
-  disabledAt   DateTime? @db.Timestamptz(3)
-  createdAt    DateTime @default(now()) @db.Timestamptz(3)
-  updatedAt    DateTime @updatedAt @db.Timestamptz(3)
-  sessions     Session[]
-  passwordResetTokens PasswordResetToken[]
-  facilityApplications FacilityApplication[] @relation("Applicant")
-  reviewedApplications FacilityApplication[] @relation("Reviewer")
-  applicationReopenings FacilityApplicationReopening[]
+model Patient {
+  id String @id @default(uuid()) @db.Uuid
+  firstName String @db.VarChar(100)
+  email String @unique @db.VarChar(254)
   passwordHash String
-  roleId Int @default(1)
+  roleId Int
   role Role @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  disabledAt DateTime? @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  resetTokenHash String? @unique @db.Char(64)
+  resetExpiresAt DateTime? @db.Timestamptz(3)
+  sessions Session[]
+  applications FacilityApplication[] @relation("PatientApplicant")
+  appointments Appointment[]
+  
+}
+
+model Admin {
+  id String @id @default(uuid()) @db.Uuid
+  firstName String @db.VarChar(100)
+  email String @unique @db.VarChar(254)
+  passwordHash String
+  roleId Int
+  role Role @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  disabledAt DateTime? @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  resetTokenHash String? @unique @db.Char(64)
+  resetExpiresAt DateTime? @db.Timestamptz(3)
+  sessions Session[]
+  applications FacilityApplication[] @relation("AdminApplicant")
+  reviewedApplications FacilityApplication[] @relation("Reviewer")
+}
+
+model Doctor {
+  id String @id @default(uuid()) @db.Uuid
+  firstName String @db.VarChar(100)
+  email String @unique @db.VarChar(254)
+  passwordHash String
+  roleId Int
+  role Role @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  disabledAt DateTime? @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  resetTokenHash String? @unique @db.Char(64)
+  resetExpiresAt DateTime? @db.Timestamptz(3)
+  sessions Session[]
+  applications FacilityApplication[] @relation("DoctorApplicant")
+  
 }
 
 enum FacilityType {
@@ -48,9 +85,14 @@ enum FacilityApplicationStatus {
 model FacilityApplication {
   id                String @id @default(uuid()) @db.Uuid
   applicantId       String @db.Uuid
-  applicant         User @relation("Applicant", fields: [applicantId], references: [id], onDelete: Restrict)
+  applicantPatientId String? @db.Uuid
+  applicantPatient Patient? @relation("PatientApplicant", fields: [applicantPatientId], references: [id], onDelete: Restrict)
+  applicantAdminId String? @db.Uuid
+  applicantAdmin Admin? @relation("AdminApplicant", fields: [applicantAdminId], references: [id], onDelete: Restrict)
+  applicantDoctorId String? @db.Uuid
+  applicantDoctor Doctor? @relation("DoctorApplicant", fields: [applicantDoctorId], references: [id], onDelete: Restrict)
   reviewedByAdminId  String? @db.Uuid
-  reviewedByAdmin    User? @relation("Reviewer", fields: [reviewedByAdminId], references: [id], onDelete: Restrict)
+  reviewedByAdmin    Admin? @relation("Reviewer", fields: [reviewedByAdminId], references: [id], onDelete: Restrict)
   reviewedAt        DateTime? @db.Timestamptz(3)
   rejectionReason   String? @db.VarChar(2000)
   facilityName      String @db.VarChar(200)
@@ -65,7 +107,6 @@ model FacilityApplication {
   status            FacilityApplicationStatus @default(PENDING)
   createdAt         DateTime @default(now()) @db.Timestamptz(3)
   updatedAt         DateTime @updatedAt @db.Timestamptz(3)
-  reopenings        FacilityApplicationReopening[]
   facility          Facility?
 
   @@index([applicantId])
@@ -83,43 +124,76 @@ model Facility {
   address String @db.VarChar(500)
   city String @db.VarChar(100)
   description String? @db.VarChar(2000)
-  services String[]
+  services FacilityService[]
+  openingHours FacilityOpeningHours?
+  slots FacilitySlot[]
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
 }
 
-model FacilityApplicationReopening {
-  id String @id @default(uuid()) @db.Uuid
-  applicationId String @db.Uuid
-  application FacilityApplication @relation(fields: [applicationId], references: [id], onDelete: Restrict)
-  reopenedByAdminId String @db.Uuid
-  reopenedByAdmin User @relation(fields: [reopenedByAdminId], references: [id], onDelete: Restrict)
-  reopenedAt DateTime @default(now()) @db.Timestamptz(3)
-  previousReviewedByAdminId String? @db.Uuid
-  previousReviewedAt DateTime? @db.Timestamptz(3)
-  previousRejectionReason String? @db.VarChar(2000)
 
-  @@index([applicationId])
+
+
+
+model FacilityService {
+  id String @id @default(uuid()) @db.Uuid
+  facilityId String @db.Uuid
+  facility Facility @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  name String @db.VarChar(100)
+  position Int
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  @@index([facilityId])
 }
 
-model PasswordResetToken {
-  id        String    @id @default(uuid()) @db.Uuid
-  userId    String    @db.Uuid
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tokenHash String    @unique @db.Char(64)
-  expiresAt DateTime  @db.Timestamptz(3)
-  usedAt    DateTime? @db.Timestamptz(3)
-  revokedAt DateTime? @db.Timestamptz(3)
-  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+model FacilityOpeningHours {
+  facilityId String @id @db.Uuid
+  facility Facility @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  timezone String @db.VarChar(100)
+  days Json
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+}
 
-  @@index([userId])
-  @@index([expiresAt])
+model FacilitySlot {
+  id String @id @default(uuid()) @db.Uuid
+  facilityId String @db.Uuid
+  facility Facility @relation(fields: [facilityId], references: [id], onDelete: Restrict)
+  startsAt DateTime @db.Timestamptz(3)
+  endsAt DateTime @db.Timestamptz(3)
+  bookedAt DateTime? @db.Timestamptz(3)
+  appointment Appointment?
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  @@unique([facilityId, startsAt])
+}
+
+enum AppointmentStatus {
+  PENDING
+  BOOKED
+}
+
+model Appointment {
+  id String @id @default(uuid()) @db.Uuid
+  patientId String @db.Uuid
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  slotId String @unique @db.Uuid
+  slot FacilitySlot @relation(fields: [slotId], references: [id], onDelete: Restrict)
+  appointmentNote String? @db.VarChar(2000)
+  status AppointmentStatus @default(BOOKED)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  @@index([patientId])
 }
 
 model Session {
   id        String    @id @default(uuid()) @db.Uuid
   userId    String    @db.Uuid
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  patientId String? @db.Uuid
+  patient Patient? @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  adminId String? @db.Uuid
+  admin Admin? @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  doctorId String? @db.Uuid
+  doctor Doctor? @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  ipAddress String? @db.VarChar(45)
   tokenHash String    @unique @db.Char(64)
   consumedTokenHashes String[] @default([])
   expiresAt DateTime  @db.Timestamptz(3)
@@ -131,6 +205,7 @@ model Session {
   @@index([expiresAt])
   @@index([consumedTokenHashes], type: Gin)
 }
+
 
 
 

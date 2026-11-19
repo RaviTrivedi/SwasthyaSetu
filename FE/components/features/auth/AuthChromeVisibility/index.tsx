@@ -1,6 +1,6 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { useSelectedLayoutSegment } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 export default function AuthChromeVisibility({
@@ -8,7 +8,7 @@ export default function AuthChromeVisibility({
 }: {
   children: ReactNode;
 }) {
-  const pathname = usePathname();
-  if (['/sign-in', '/sign-up'].includes(pathname)) return null;
+  const segment = useSelectedLayoutSegment();
+  if (segment === 'sign-in' || segment === 'sign-up' || segment === 'admin') return null;
   return <>{children}</>;
 }

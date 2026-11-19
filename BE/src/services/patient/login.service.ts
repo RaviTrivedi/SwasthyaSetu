@@ -25,7 +25,7 @@ export function createLoginPatient(repository: UserRepository = userRepository) 
     const user = await repository.findUserByEmail(input.email.trim().toLowerCase());
     const passwordHash = user?.passwordHash ?? await getDummyHash();
     const valid = await verify(passwordHash, input.password);
-    if (!user || !valid) {
+    if (!user || user.disabledAt || !valid) {
       throw new HttpError(401, API_ERROR_MESSAGES.INVALID_CREDENTIALS);
     }
 
@@ -42,3 +42,4 @@ export function createLoginPatient(repository: UserRepository = userRepository) 
 
 export const loginPatient = createLoginPatient();
 export type LoginPatient = ReturnType<typeof createLoginPatient>;
+

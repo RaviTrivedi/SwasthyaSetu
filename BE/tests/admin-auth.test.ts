@@ -81,3 +81,4 @@ test('admin login is mounted and validates input without public admin registrati
     assert.equal((await fetch(`${base}/register`, { method: 'POST', headers: { 'X-CSRF-Protection': '1' } })).status, 404);
   } finally { await new Promise<void>(resolve => server.close(() => resolve())); }
 });
+

@@ -156,3 +156,17 @@
 .admin p {
   color: var(--muted);
 }
+
+.loginOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.loginOptions legend { font-weight: 600; padding-inline: var(--space-2); }
+.loginOptions label { display: flex; align-items: center; gap: var(--space-2); min-height: 44px; cursor: pointer; }
+.loginOptions input { accent-color: var(--navy); }
+.loginOptions:disabled { opacity: 0.65; }

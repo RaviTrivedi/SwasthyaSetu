@@ -83,7 +83,7 @@ test('invalid fields, role injection, and unexpected fields are rejected before 
       const response = await f.post(body);
       assert.equal(response.status, 400);
       const result = await response.json() as { message: string };
-      assert.ok(['Invalid registration input', 'Invalid JSON body'].includes(result.message));
+      assert.ok(['Provide firstName (1-100 characters), a valid email, and password (8-128 characters). Extra fields such as role are not accepted.', 'The request body is not valid JSON. Check its syntax and send Content-Type: application/json.'].includes(result.message));
       assert.deepEqual(Object.keys(result), ['message']);
     }
     assert.equal(f.lookups.length, 0);
@@ -120,7 +120,7 @@ test('unexpected errors do not expose internals', async () => {
   try {
     const response = await f.post(valid);
     assert.equal(response.status, 500);
-    assert.deepEqual(await response.json(), { message: 'Internal server error' });
+    assert.deepEqual(await response.json(), { message: 'The server could not complete this request. Try again later; use the X-Request-ID response header when reporting the problem.' });
   } finally { await f.close(); }
 });
 
@@ -129,10 +129,10 @@ test('malformed JSON and oversized requests return safe errors', async () => {
   try {
     const malformed = await f.raw('{"password":');
     assert.equal(malformed.status, 400);
-    assert.deepEqual(await malformed.json(), { message: 'Invalid JSON body' });
+    assert.deepEqual(await malformed.json(), { message: 'The request body is not valid JSON. Check its syntax and send Content-Type: application/json.' });
     const large = await f.post({ ...valid, password: 'x'.repeat(17000) });
     assert.equal(large.status, 413);
-    assert.deepEqual(await large.json(), { message: 'Request body too large' });
+    assert.deepEqual(await large.json(), { message: 'The request body exceeds the size limit for this endpoint. Reduce the payload and try again.' });
     assert.equal(f.lookups.length, 0);
   } finally { await f.close(); }
 });
@@ -146,14 +146,15 @@ test('application mounts registration and preserves health and 404 behavior', as
       method: 'POST', headers: { 'X-CSRF-Protection': '1', 'Content-Type': 'application/json' }, body: '{}',
     });
     assert.equal(response.status, 400);
-    assert.deepEqual(await response.json(), { message: 'Invalid registration input' });
+    assert.deepEqual(await response.json(), { message: 'Provide firstName (1-100 characters), a valid email, and password (8-128 characters). Extra fields such as role are not accepted.' });
     const health = await fetch(`${base}/api/v1/health`);
     assert.equal(health.status, 200);
     assert.deepEqual(await health.json(), { status: 'ok' });
     const missing = await fetch(`${base}/api/v1/auth/login`);
     assert.equal(missing.status, 404);
-    assert.deepEqual(await missing.json(), { message: 'Not found' });
+    assert.deepEqual(await missing.json(), { message: 'The requested resource was not found. Check the endpoint URL, HTTP method, and resource ID.' });
   } finally {
     await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
   }
 });
+

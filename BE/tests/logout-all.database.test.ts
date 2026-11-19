@@ -27,9 +27,10 @@ test('logout-all revokes all active sessions for one user only', async () => {
     assert.deepEqual(await db.session.findUniqueOrThrow({ where: { id: previouslyRevoked.id } }), previouslyRevoked);
     assert.equal((await revokeActiveSessionsByUserId(ids[0]!)).count, 0);
   } finally {
-    await db.user.deleteMany({ where: { id: { in: ids } } });
+    await db.patient.deleteMany({ where: { id: { in: ids } } });
     await disconnectDatabase();
   }
 });
+
 
 

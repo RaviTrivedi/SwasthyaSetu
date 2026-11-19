@@ -36,26 +36,20 @@ test('PostgreSQL permits exactly one concurrent application review', async () =>
     ]);
     assert.equal(reopened.filter(result => result.outcome === 'reviewed').length, 1);
     assert.equal(reopened.filter(result => result.outcome === 'conflict').length, 1);
-    const history = await db.facilityApplicationReopening.findMany({ where: { applicationId: id } });
-    assert.equal(history.length, 1);
-    assert.equal(history[0]!.previousRejectionReason, 'Original rejection');
-    assert.equal(history[0]!.previousReviewedByAdminId, adminId);
-    assert.equal(history[0]!.reopenedByAdminId, adminId);
-    assert.ok(history[0]!.reopenedAt);
     const pending = await db.facilityApplication.findUniqueOrThrow({ where: { id } });
     assert.equal(pending.status, 'PENDING');
     assert.equal(pending.rejectionReason, null);
     assert.equal(pending.reviewedAt, null);
     await reviewApplication(id, adminId, 'APPROVED', null);
     assert.equal((await reviewApplication(id, adminId, 'PENDING', null)).outcome, 'conflict');
-    assert.equal(await db.facilityApplicationReopening.count({ where: { applicationId: id } }), 1);
   } finally {
     await db.facility.deleteMany({ where: { applicationId: id } });
-    await db.facilityApplicationReopening.deleteMany({ where: { applicationId: id } });
     await db.facilityApplication.deleteMany({ where: { id } });
-    await db.user.deleteMany({ where: { id: { in: [adminId, applicantId] } } });
+    await db.patient.deleteMany({ where: { id: applicantId } }); await db.admin.deleteMany({ where: { id: adminId } });
     await disconnectDatabase();
   }
 });
+
+
 
 

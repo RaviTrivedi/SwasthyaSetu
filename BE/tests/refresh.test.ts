@@ -79,7 +79,7 @@ test('refresh returns a minimal signed access token and rotates only the cookie 
       assert.ok(f.writes[0]!.expiresAt.getTime() > Date.now() + 29 * 86400000);
       const replay = await f.post(`refresh_token=${f.token}`);
       assert.equal(replay.status, 401);
-      assert.deepEqual(await replay.json(), { message: 'Invalid refresh token' });
+      assert.deepEqual(await replay.json(), { message: 'Your session cannot be refreshed because the refresh cookie is missing, invalid, expired, or already used. Sign in again.' });
       assert.deepEqual(f.events, ['test-session']);
       const family = await f.post(`refresh_token=${nextToken}`);
       assert.equal(family.status, 401);
@@ -98,7 +98,7 @@ test('missing, malformed, unknown, expired, revoked and duplicate cookies return
       for (const cookie of cookies) {
         const response = await f.post(cookie, { refreshToken: f.token });
         assert.equal(response.status, 401);
-        assert.deepEqual(await response.json(), { message: 'Invalid refresh token' });
+        assert.deepEqual(await response.json(), { message: 'Your session cannot be refreshed because the refresh cookie is missing, invalid, expired, or already used. Sign in again.' });
         assert.equal(response.headers.get('set-cookie'), null);
       }
       assert.equal(f.writes.length, 0);
@@ -111,7 +111,8 @@ test('failed rotation never returns tokens or cookies', async () => {
   try {
     const response = await f.post(`refresh_token=${f.token}`);
     assert.equal(response.status, 500);
-    assert.deepEqual(await response.json(), { message: 'Internal server error' });
+    assert.deepEqual(await response.json(), { message: 'The server could not complete this request. Try again later; use the X-Request-ID response header when reporting the problem.' });
     assert.equal(response.headers.get('set-cookie'), null);
   } finally { await f.close(); }
 });
+
