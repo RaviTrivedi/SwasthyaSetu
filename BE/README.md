@@ -2,6 +2,31 @@
 
 Independent Express + TypeScript backend. Requires Node.js 20.19+ and npm.
 
+## Doctor appointments
+
+`GET /api/v1/doctor/facility/appointments` requires an authenticated active Doctor.
+Optional query: `page` (1–100000), `pageSize` (1–100, default 20), and `date`
+(`YYYY-MM-DD`, interpreted in the facility opening-hours timezone; UTC if unset).
+Returns `{ items, total, page, pageSize, timezone }`, newest slot first. Each item
+contains id, status, createdAt, appointmentNote, patient.firstName, and slot start/end.
+Only the caller's approved facility is queried; no owner/facility IDs are accepted.
+Missing facilities return 404; multiple approved facilities return 409. Responses
+are not cached. Existing BOOKED appointments are confirmed and require no review;
+historical PENDING records are returned with their original status. No migration needed.
+
+## Local marketplace demo records
+
+Run `npm run db:seed:marketplace` after applying existing migrations to your local
+development database. This command refuses production and non-localhost database
+URLs. It adds two clearly fictional hospitals and one clinic, their Doctor owners,
+approved applications, public profiles, services/specialties and Asia/Kolkata opening
+hours (Monday–Saturday, 09:00–17:00). These are development fixtures, not verified
+providers; approval is pre-set only for these fixtures, without impersonating an admin.
+Random owner passwords are hashed and discarded, and no login credentials are printed.
+Reruns skip existing fixture IDs without modifying records; all inserts use one transaction.
+No schema changes, resets, or deletion are required. The home page reads these records
+through the public facility API, with no hardcoded facility or specialty fallback.
+
 ## Read-only Admin directories
 
 All routes below require an authenticated, currently active ADMIN account using

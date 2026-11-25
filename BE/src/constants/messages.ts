@@ -1,5 +1,6 @@
 // Public API response text. Keep secrets and provider/database details out of these.
 export const API_ERROR_MESSAGES = {
+  INVALID_DOCTOR_APPOINTMENTS_QUERY: 'Use page (1-100000), pageSize (1-100), and an optional date in YYYY-MM-DD format. Owner and facility IDs are not accepted.',
   INVALID_MARKETPLACE_QUERY: "Use a valid facility UUID, date=YYYY-MM-DD for slots, or supported list filters: page (1-100000), pageSize (1-50), query, city, facilityType (CLINIC or HOSPITAL).",
   INVALID_ADMIN_DIRECTORY_QUERY: "Provide page (1-100000), pageSize (1-100), and supported filters only. Doctor applicationStatus must be PENDING, APPROVED or REJECTED; user role must be PATIENT, ADMIN or DOCTOR; slot status must be AVAILABLE, BOOKED or UNAVAILABLE. Slot facilityId must be a UUID and from/to must be ISO timestamps with a timezone, with from before to.",
   OPENING_HOURS_NOT_FOUND: "Set opening hours for your approved facility before requesting slots.",
@@ -8,7 +9,7 @@ export const API_ERROR_MESSAGES = {
   SCHEDULE_CONFLICT: "The facility schedule changed concurrently. Please retry the request.",
   PATIENT_REQUIRED: "This action requires an active Patient account. Sign in through the patient login endpoint.",
   INVALID_APPOINTMENT: "Provide a valid slotId and optionally appointmentNote (1-2000 characters). Patient, facility, doctor, status and approval fields are not accepted.",
-  SLOT_UNAVAILABLE: "This appointment slot is unavailable or already reserved. Choose another future slot.",
+  SLOT_UNAVAILABLE: "This slot is already booked or no longer available. Please choose another slot.",
   DOCTOR_REQUIRED: "This action requires an active Doctor account. Sign in through the clinic login endpoint.",
   INVALID_FACILITY_SERVICE: "Provide a service name of 1-100 characters and a valid service ID when updating or deleting. No additional fields are accepted.",
   FACILITY_SERVICE_NOT_FOUND: "The service was not found in your approved facility.",

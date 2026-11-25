@@ -27,12 +27,21 @@ test('Doctor owner routes enforce authentication, live role, strict input and sa
    if (op.kind === 'delete') return { outcome: 'deleted' };
    return { outcome: 'saved', service: { ...item, name: op.name } };
  });
- const app = express(); app.use(browserAccess); app.use('/api/v1/doctor/facility', createDoctorFacilityRouter(profiles, services, authorize)); app.use(errorHandler);
+ const appointments = async (id: string, input: { page: number; pageSize: number; date?: string | undefined }) => {
+   assert.equal(id, owner); return { items: [], total: 0, page: input.page, pageSize: input.pageSize, timezone: 'Asia/Kolkata' };
+ };
+ const app = express(); app.use(browserAccess); app.use('/api/v1/doctor/facility', createDoctorFacilityRouter(profiles, services, authorize, undefined, appointments)); app.use(errorHandler);
  const server = app.listen(0, '127.0.0.1'); await once(server, 'listening');
  const token = (role: string, id = owner) => new SignJWT({ role }).setProtectedHeader({ alg: 'HS256', typ: 'JWT' }).setSubject(id).setIssuedAt().setExpirationTime('15m').sign(key);
  const doctor = await token('DOCTOR');
  const request = (path = '', method = 'GET', body?: unknown, auth = doctor) => fetch(`http://127.0.0.1:${(server.address() as AddressInfo).port}/api/v1/doctor/facility${path}`, { method, headers: { Cookie: auth ? `access_token=${auth}` : '', 'Content-Type': 'application/json', 'X-CSRF-Protection': '1' }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
  try {
+   assert.equal((await request('/appointments', 'GET', undefined, '')).status, 401);
+   for (const role of ['PATIENT', 'ADMIN']) assert.equal((await request('/appointments', 'GET', undefined, await token(role))).status, 403);
+   for (const query of ['page=0','pageSize=101','date=2026-02-30','ownerId=ignored','facilityId=ignored','page=1&page=2']) assert.equal((await request(`/appointments?${query}`)).status, 400);
+   const listed = await request('/appointments?page=2&pageSize=10&date=2026-11-23');
+   assert.equal(listed.headers.get('cache-control'), 'no-store');
+   assert.deepEqual(await listed.json(), { items: [], total: 0, page: 2, pageSize: 10, timezone: 'Asia/Kolkata' });
    assert.equal((await request('', 'GET', undefined, '')).status, 401);
    for (const role of ['PATIENT', 'ADMIN']) for (const [path, method] of [['/application-status', 'GET'], ['', 'GET'], ['', 'PATCH'], ['/services', 'GET'], ['/services', 'POST'], [`/services/${item.id}`, 'PATCH'], [`/services/${item.id}`, 'DELETE']]) {
      assert.equal((await request(path, method, method === 'PATCH' || method === 'POST' ? { name: 'X' } : undefined, await token(role))).status, 403);

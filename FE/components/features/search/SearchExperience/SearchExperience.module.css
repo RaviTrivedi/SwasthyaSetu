@@ -31,6 +31,12 @@
 .content {
   min-width: 0;
 }
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3);
+}
 @media (max-width: 900px) {
   .layout {
     grid-template-columns: minmax(0, 1fr);

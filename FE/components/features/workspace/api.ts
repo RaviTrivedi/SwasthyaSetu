@@ -64,6 +64,18 @@ export function createWorkspaceApi(request = apiRequest) {
   }
   const nameBody = (name: string) => { name = name.trim(); if (!name || name.length > 100) throw new Error('Service names must contain 1–100 characters.'); return { name }; };
   return {
+    async appointments(query: string) {
+      const row = object(await read(`/appointments?${query}`));
+      if (!Array.isArray(row.items) || !Number.isSafeInteger(row.total) || Number(row.total) < 0 || !Number.isInteger(row.page) || Number(row.page) < 1 || !Number.isInteger(row.pageSize) || Number(row.pageSize) < 1) throw invalid();
+      const timezone = text(row.timezone); new Intl.DateTimeFormat('en', { timeZone: timezone });
+      return { total: Number(row.total), page: Number(row.page), pageSize: Number(row.pageSize), timezone,
+        items: row.items.map(value => {
+          const item = object(value), patient = object(item.patient), slot = object(item.slot);
+          if (item.status !== 'BOOKED' && item.status !== 'PENDING') throw invalid();
+          return { id: text(item.id), status: item.status, createdAt: date(item.createdAt), appointmentNote: item.appointmentNote === null ? null : text(item.appointmentNote),
+            patient: { firstName: text(patient.firstName) }, slot: { startsAt: date(slot.startsAt), endsAt: date(slot.endsAt) } };
+        }) };
+    },
     async profile() { return facility(await read()); },
     async updateProfile(input: ProfileInput) { return facility(await read('', { method: 'PATCH', body: input })); },
     async services() { const result = await read('/services'); if (!Array.isArray(result)) throw invalid(); return result.map(service); },

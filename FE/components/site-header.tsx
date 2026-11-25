@@ -11,7 +11,7 @@ import styles from './site-header.module.css';
 const navigation = [
   { href: '/search', label: 'Find care' },
   { href: '/search?query=Hospitals', label: 'Hospitals' },
-  { href: '/#specialty-categories-title', label: 'Specialties' },
+  // { href: '/#specialty-categories-title', label: 'Specialties' },
 ];
 
 export default function SiteHeader() {
@@ -32,7 +32,10 @@ export default function SiteHeader() {
   function renderLinks() {
     return (
       <>
-        <HeaderAccount adminWorkspace={adminWorkspace} onNavigate={() => setIsOpen(false)} />
+        <HeaderAccount
+          adminWorkspace={adminWorkspace}
+          onNavigate={() => setIsOpen(false)}
+        />
       </>
     );
   }
@@ -103,30 +106,94 @@ export default function SiteHeader() {
   );
 }
 
-function HeaderAccount({ onNavigate, adminWorkspace }: { onNavigate: () => void; adminWorkspace: boolean }) {
+function HeaderAccount({
+  onNavigate,
+  adminWorkspace,
+}: {
+  onNavigate: () => void;
+  adminWorkspace: boolean;
+}) {
   const router = useRouter();
   const session = useSession();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   async function signOut() {
     if (busy) return;
-    setBusy(true); setError('');
-    try { await logout(); onNavigate(); router.replace('/sign-in'); }
-    catch { setError('Unable to sign out. Please try again.'); }
-    finally { setBusy(false); }
+    setBusy(true);
+    setError('');
+    try {
+      await logout();
+      onNavigate();
+      router.replace('/sign-in');
+    } catch {
+      setError('Unable to sign out. Please try again.');
+    } finally {
+      setBusy(false);
+    }
   }
-  if (session.error) return <button type="button" className={styles.signIn} onClick={session.retry}>Retry session check</button>;
-  if (session.user === undefined) return <span role="status" className={styles.sessionStatus}>Checking session...</span>;
-  const marketplaceLinks = !adminWorkspace && session.user?.role !== 'ADMIN' ? <ul className={styles.links}>
-    {navigation.map(({ href, label }) => <li key={href}><Link href={href} onClick={onNavigate}>{label}</Link></li>)}
-  </ul> : null;
-  if (!session.user) return <>{marketplaceLinks}<Link href="/sign-in" className={styles.signIn} onClick={onNavigate}>Sign in</Link></>;
-  return <>{marketplaceLinks}<div className={styles.account}>
-    {session.user.role !== 'ADMIN' && <Link href={session.user.role === 'PATIENT' ? '/appointments' : homeFor(session.user.role)} className={styles.signIn} onClick={onNavigate}>
-      {session.user.role === 'DOCTOR' ? 'Doctor workspace' : 'My appointments'}
-    </Link>}
-    <span className={styles.accountName}>{session.user.firstName}</span>
-    <button type="button" className={styles.signOut} disabled={busy} onClick={() => void signOut()}>{busy ? 'Signing out...' : 'Sign out'}</button>
-    {error && <span role="alert">{error}</span>}
-  </div></>;
+  if (session.error)
+    return (
+      <button type="button" className={styles.signIn} onClick={session.retry}>
+        Retry session check
+      </button>
+    );
+  if (session.user === undefined)
+    return (
+      <span role="status" className={styles.sessionStatus}>
+        Checking session...
+      </span>
+    );
+  const marketplaceLinks =
+    !adminWorkspace && session.user?.role !== 'ADMIN' ? (
+      <ul className={styles.links}>
+        {navigation.map(({ href, label }) => (
+          <li key={href}>
+            <Link href={href} onClick={onNavigate}>
+              {label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    ) : null;
+  if (!session.user)
+    return (
+      <>
+        {marketplaceLinks}
+        <Link href="/sign-in" className={styles.signIn} onClick={onNavigate}>
+          Sign in
+        </Link>
+      </>
+    );
+  return (
+    <>
+      {marketplaceLinks}
+      <div className={styles.account}>
+        {session.user.role !== 'ADMIN' && (
+          <Link
+            href={
+              session.user.role === 'PATIENT'
+                ? '/appointments'
+                : homeFor(session.user.role)
+            }
+            className={styles.signIn}
+            onClick={onNavigate}
+          >
+            {session.user.role === 'DOCTOR'
+              ? 'Doctor workspace'
+              : 'My appointments'}
+          </Link>
+        )}
+        {/* <span className={styles.accountName}>{session.user.firstName}</span> */}
+        <button
+          type="button"
+          className={styles.signOut}
+          disabled={busy}
+          onClick={() => void signOut()}
+        >
+          {busy ? 'Signing out...' : 'Sign out'}
+        </button>
+        {error && <span role="alert">{error}</span>}
+      </div>
+    </>
+  );
 }

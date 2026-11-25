@@ -38,6 +38,7 @@ export default function AuthScreen({ mode }: { mode: AuthMode }) {
   const requestedRole = useSearchParams().get('role');
   const [loginRole, setLoginRole] = useState<StaffLoginRole>(requestedRole === 'ADMIN' || requestedRole === 'DOCTOR' || requestedRole === 'PATIENT' ? requestedRole : mode === 'admin' ? 'ADMIN' : 'PATIENT');
   const isAdmin = !isSignUp && loginRole === 'ADMIN';
+  const [signupRole, setSignupRole] = useState<'PATIENT' | 'DOCTOR'>(requestedRole === 'DOCTOR' ? 'DOCTOR' : 'PATIENT');
   useEffect(() => {
     let active = true;
     currentUser().then(profile => { if (active) setUser(profile); }).catch(() => {
@@ -76,12 +77,12 @@ export default function AuthScreen({ mode }: { mode: AuthMode }) {
         let destination = safeReturnPath(new URLSearchParams(window.location.search).get('returnTo'), result.user.role) ?? result.dashboard;
         if (result.user.role === 'DOCTOR') {
           const access = await doctorAccess();
-          if (access.approvedCount !== 1 || !access.profileAvailable) destination = '/doctor/application-status';
+          if (access.approvedCount !== 1 || !access.profileAvailable) destination = destination === '/doctor/add-facility' ? destination : '/doctor/application-status';
         }
         router.replace(destination);
         return;
       }
-      const response = await apiRequest('/auth/register', {
+      const response = await apiRequest(signupRole === 'DOCTOR' ? '/clinic/auth/register' : '/auth/register', {
         method: 'POST', refresh: false,
         body: { email: values.email, password: values.password, ...(isSignUp ? { firstName: values.firstName } : {}) },
       });
@@ -90,6 +91,7 @@ export default function AuthScreen({ mode }: { mode: AuthMode }) {
       if (!isSignUp) setUser(result.user);
       setValues(previous => ({ ...previous, password: '' }));
       setFeedback(isSignUp ? 'Account created. Please sign in.' : 'You are signed in.');
+      if (signupRole === 'DOCTOR') router.replace('/sign-in?role=DOCTOR&returnTo=%2Fdoctor%2Fadd-facility');
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : 'Unable to connect. Please try again.');
     } finally { setBusy(false); }
@@ -120,6 +122,12 @@ export default function AuthScreen({ mode }: { mode: AuthMode }) {
         <h1 id="auth-title">{isSignUp ? titles[mode] : staffLoginOptions[loginRole].label}</h1>
       </header>
       <div className={styles.body}>
+        {isSignUp && <fieldset className={styles.loginOptions} disabled={busy}>
+          <legend>What would you like to do?</legend>
+          <label><input type="radio" name="signupRole" checked={signupRole === 'PATIENT'} onChange={() => setSignupRole('PATIENT')} />Find care as a Patient</label>
+          <label><input type="radio" name="signupRole" checked={signupRole === 'DOCTOR'} onChange={() => setSignupRole('DOCTOR')} />Add a clinic/hospital (Doctor account)</label>
+          {signupRole === 'DOCTOR' && <p>Create your account, then sign in to submit your facility for Admin review.</p>}
+        </fieldset>}
         {!isSignUp && (
           <fieldset className={styles.loginOptions} disabled={busy}>
             <legend>Choose your login</legend>
@@ -263,7 +271,7 @@ export default function AuthScreen({ mode }: { mode: AuthMode }) {
             {busy ? 'Please waitâ€¦' : isSignUp ? 'Create account' : staffLoginOptions[loginRole].label}
           </button>
         </form>
-        {isSignUp && (
+        {/* {isSignUp && (
           <div className={styles.alternatives}>
             <p className={styles.divider}>Or continue with</p>
             <button type="button" onClick={() => social('Google')}>
@@ -273,7 +281,7 @@ export default function AuthScreen({ mode }: { mode: AuthMode }) {
               Continue with Facebook
             </button>
           </div>
-        )}
+        )} */}
         <p
           className={styles.feedback}
           role="status"

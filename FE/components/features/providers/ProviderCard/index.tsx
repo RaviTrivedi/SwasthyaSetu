@@ -11,7 +11,7 @@ export type Facility = {
 };
 
 type ProviderCardProps = {
-  facility: Facility;
+  facility: Omit<Facility, 'distanceKm'> & { distanceKm?: number };
   actionLabel?: string;
 };
 
@@ -23,9 +23,9 @@ export default function ProviderCard({
     <article className={styles.card}>
       <div className={styles.topline}>
         <span className={styles.type}>{facility.type}</span>
-        <span className={styles.distance}>
+        {facility.distanceKm !== undefined && <span className={styles.distance}>
           {facility.distanceKm.toFixed(1)} km away
-        </span>
+        </span>}
       </div>
       <h3 className={styles.name}>{facility.name}</h3>
       <p className={styles.address}>{facility.address}</p>

@@ -50,7 +50,7 @@ test('repository reserves atomically with future/approval predicates and rolls b
    async findUnique(args: unknown) { assert.deepEqual(args, { where: { id: slotId }, select: { facilityId: true } }); return exists ? { facilityId } : null; },
    async updateMany(args: { where: { startsAt: { gt: Date } }; data: { bookedAt: Date } }) {
     assert.equal(locks, 2);
-    assert.deepEqual(args, { where: { id: slotId, facilityId, bookedAt: null, startsAt: { gt: args.where.startsAt.gt }, facility: { application: { status: 'APPROVED', applicantDoctor: { disabledAt: null, role: { name: 'DOCTOR' } } } } }, data: { bookedAt: args.where.startsAt.gt } });
+    assert.deepEqual(args, { where: { id: slotId, facilityId, bookedAt: null, appointment: null, startsAt: { gt: args.where.startsAt.gt }, facility: { application: { status: 'APPROVED', applicantDoctor: { disabledAt: null, role: { name: 'DOCTOR' } } } } }, data: { bookedAt: args.where.startsAt.gt } });
     assert.ok(args.data.bookedAt instanceof Date);
     if (!available || reserved) return { count: 0 }; reserved = true; return { count: 1 };
    },

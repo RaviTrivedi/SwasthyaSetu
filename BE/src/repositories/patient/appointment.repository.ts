@@ -18,7 +18,7 @@ export async function bookAppointment(patientId: string, input: AppointmentInput
     // This UPDATE is the claim, not a read-then-write availability check. A competing
     // transaction sees bookedAt set and cannot proceed to appointment creation.
     const reserved = await tx.facilitySlot.updateMany({
-      where: { id: input.slotId, facilityId: candidate.facilityId, bookedAt: null, startsAt: { gt: now },
+      where: { id: input.slotId, facilityId: candidate.facilityId, bookedAt: null, appointment: null, startsAt: { gt: now },
         facility: { application: { status: 'APPROVED', applicantDoctor: { disabledAt: null, role: { name: 'DOCTOR' } } } } },
       data: { bookedAt: now },
     });

@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import AccessGate from '@/components/features/auth/AccessGate';
+import SessionLoader from '@/components/features/auth/SessionLoader';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import SiteHeader from '@/components/site-header';
@@ -32,7 +33,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
         </a>
         <Suspense fallback={null}><SiteHeader /></Suspense>
         <main id="main-content" className="container page-shell" tabIndex={-1}>
-          <Suspense fallback={<p role="status">Checking your session...</p>}><AccessGate>{children}</AccessGate></Suspense>
+          <Suspense fallback={<SessionLoader />}><AccessGate>{children}</AccessGate></Suspense>
         </main>
         <Suspense fallback={null}><AuthChromeVisibility>
           <Footer />

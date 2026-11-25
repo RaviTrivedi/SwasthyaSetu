@@ -9,6 +9,15 @@ async function client() {
  return import(encode(source));
 }
 const timestamp = '2030-01-01T00:00:00Z';
+test('Doctor appointments use owner-scoped endpoint, pagination and safe fields', async t => {
+ const {createWorkspaceApi, workspaceApi} = await client();
+ const item={id:'booking',status:'BOOKED',createdAt:timestamp,appointmentNote:'Checkup',patient:{firstName:'Patient',passwordHash:'hidden'},slot:{startsAt:timestamp,endsAt:'2030-01-01T00:30:00Z'}};
+ const result={items:[item],total:1,page:1,pageSize:20,timezone:'Asia/Kolkata'};
+ t.mock.method(globalThis,'fetch',async(url,options)=>{assert.ok(url.endsWith('/doctor/facility/appointments?page=1&date=2030-01-01'));assert.equal(options.credentials,'include');return Response.json(result);});
+ const rows=await workspaceApi.appointments('page=1&date=2030-01-01');assert.equal(rows.items[0].status,'BOOKED');assert.deepEqual(rows.items[0].patient,{firstName:'Patient'});
+ await assert.rejects(createWorkspaceApi(async()=>Response.json({...result,items:[{...item,status:'UNKNOWN'}]})).appointments(''),/Invalid/);
+ await assert.rejects(createWorkspaceApi(async()=>Response.json({}, {status:403})).appointments(''),error=>error.status===403);
+});
 const facility = { id:'facility', facilityName:'Clinic', facilityType:'CLINIC', contactPersonName:'Owner', contactEmail:'owner@example.invalid', contactPhone:'+919876543210', address:'Road', city:'Pune', description:null, services:['Consultation'], createdAt:timestamp, updatedAt:timestamp };
 const service = { id:'service', name:'Consultation', createdAt:timestamp, updatedAt:timestamp };
 const hours = { timezone:'Asia/Kolkata', days:Array.from({length:7}, (_,day) => ({ day, periods:day === 1 ? [{open:'09:00',close:'11:00'}] : [] })) };

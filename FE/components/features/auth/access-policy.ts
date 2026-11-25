@@ -5,7 +5,7 @@ export function pageRole(path: string): PageRole | 'PUBLIC' | 'AUTH' | 'FORBIDDE
   if (['/sign-in', '/admin-sign-in', '/sign-up'].includes(path)) return 'AUTH';
   if (path === '/forbidden') return 'FORBIDDEN';
   if (within(path, '/admin')) return 'ADMIN';
-  if (within(path, '/workspace') || path === '/doctor/application-status') return 'DOCTOR';
+  if (within(path, '/workspace') || path === '/doctor/application-status' || path === '/doctor/add-facility') return 'DOCTOR';
   if (within(path, '/appointments')) return 'PATIENT';
   if (path === '/' || path === '/search' || within(path, '/facilities') || within(path, '/doctors')) return 'PUBLIC';
   return 'FORBIDDEN';

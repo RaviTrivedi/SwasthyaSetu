@@ -113,7 +113,7 @@ test('role route policy keeps marketplace public and isolates patient, Doctor an
   assert.equal(pageRole(path), 'PUBLIC'); assert.equal(allowedPage('PATIENT', path), true);
   assert.equal(allowedPage('DOCTOR', path), false); assert.equal(allowedPage('ADMIN', path), false);
  }
- for (const [role, path] of [['PATIENT','/appointments/new'], ['DOCTOR','/workspace'], ['ADMIN','/admin/facilities']]) {
+ for (const [role, path] of [['PATIENT','/appointments/new'], ['DOCTOR','/workspace'], ['DOCTOR','/doctor/add-facility'], ['ADMIN','/admin/facilities']]) {
   assert.equal(allowedPage(role, path), true);
   for (const other of ['PATIENT','DOCTOR','ADMIN'].filter(item => item !== role)) assert.equal(allowedPage(other, path), false);
  }
@@ -124,6 +124,8 @@ test('return destinations reject external, encoded, traversal, login loops and w
  assert.equal(safeReturnPath('/appointments/new?facilityId=abc', 'PATIENT'), '/appointments/new?facilityId=abc');
  assert.equal(safeReturnPath('/admin/facilities', 'ADMIN'), '/admin/facilities');
  assert.equal(safeReturnPath('/workspace', 'DOCTOR'), '/workspace');
+ assert.equal(safeReturnPath('/doctor/add-facility', 'DOCTOR'), '/doctor/add-facility');
+ assert.equal(safeReturnPath('/doctor/add-facility', 'PATIENT'), null);
 });
 test('patient login uses existing cookie endpoint and patient home', async t => {
  t.mock.method(globalThis, 'fetch', async (url, options) => {

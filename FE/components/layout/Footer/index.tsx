@@ -13,10 +13,10 @@ const groups: { title: string; items: FooterItem[] }[] = [
       { label: 'Hospitals', href: '/search?query=Hospitals' },
     ],
   },
-  {
-    title: 'For clinics',
-    items: [{ label: 'List your clinic' }, { label: 'Clinic resources' }],
-  },
+  // {
+  //   title: 'For clinics',
+  //   items: [{ label: 'List your clinic' }, { label: 'Clinic resources' }],
+  // },
   {
     title: 'Support',
     items: [{ label: 'Help centre' }, { label: 'Contact us' }],

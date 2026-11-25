@@ -13,6 +13,8 @@ import { env, requireDatabaseUrl } from '../src/config/env.js';
 import { createAccountFixture } from './account-fixture.js';
 import { submitAppointment } from '../src/services/patient/appointment.service.js';
 import { accessOwnedSchedule } from '../src/repositories/opening-hours.repository.js';
+import { API_ERROR_MESSAGES } from '../src/constants/messages.js';
+import { listOwnedAppointments } from '../src/repositories/clinic/appointment.repository.js';
 
 test('PostgreSQL concurrency allows one booking, rejects past/unapproved slots, and preserves reservations on schedule changes', async () => {
  assert.equal(env.nodeEnv, 'development');
@@ -21,7 +23,7 @@ test('PostgreSQL concurrency allows one booking, rejects past/unapproved slots, 
  const fields = { facilityName: 'Booking test', facilityType: 'CLINIC' as const, contactPersonName: 'Test', contactEmail: 'test@example.invalid', contactPhone: '+919876543210', address: 'Test', city: 'Test' };
  try {
   for (const id of [owner, ...patientIds]) await createAccountFixture({ id, firstName: 'Test', email: `${id}@example.invalid`, passwordHash: 'non-login-fixture', role: { connect: { name: id === owner ? 'DOCTOR' : 'PATIENT' } } });
-  await db.facilityApplication.create({ data: { id: applicationId, applicantId: owner, status: 'APPROVED', ...fields, services: ['Consultation'] } });
+  await db.facilityApplication.create({ data: { id: applicationId, applicantId: owner, applicantDoctorId: owner, status: 'APPROVED', ...fields, services: ['Consultation'] } });
   await db.facility.create({ data: { id: facilityId, applicationId, ...fields } });
   const startsAt = new Date(Date.now() + 86400000);
   const slot = await db.facilitySlot.create({ data: { facilityId, startsAt, endsAt: new Date(startsAt.getTime() + 1800000) } });
@@ -38,7 +40,15 @@ test('PostgreSQL concurrency allows one booking, rejects past/unapproved slots, 
    assert.deepEqual(attempts.map(result => result.status).sort(), [201, 409]);
    const winner = await attempts.find(result => result.status === 201)!.json() as { status: string };
    assert.equal(winner.status, 'BOOKED');
-   assert.deepEqual(await attempts.find(result => result.status === 409)!.json(), { message: 'This appointment slot is unavailable or already reserved. Choose another future slot.' });
+   assert.deepEqual(await attempts.find(result => result.status === 409)!.json(), { message: API_ERROR_MESSAGES.SLOT_UNAVAILABLE });
+   // Both the original patient and another patient must be rejected on a repeat request.
+   for (const token of tokens) {
+    const repeat = await fetch(`http://127.0.0.1:${(server.address() as AddressInfo).port}/api/v1/patient/appointments`, {
+     method: 'POST', headers: { Authorization: `Bearer ${token}`, 'X-CSRF-Protection': '1', 'Content-Type': 'application/json' }, body: JSON.stringify({ slotId: slot.id }),
+    });
+    assert.equal(repeat.status, 409);
+    assert.deepEqual(await repeat.json(), { message: API_ERROR_MESSAGES.SLOT_UNAVAILABLE });
+   }
   } finally {
    await new Promise<void>(resolve => server.close(() => resolve()));
    if (secret === undefined) delete process.env.ACCESS_TOKEN_SECRET; else process.env.ACCESS_TOKEN_SECRET = secret;
@@ -51,8 +61,18 @@ test('PostgreSQL concurrency allows one booking, rejects past/unapproved slots, 
   assert.equal(await db.appointment.count({ where: { slotId: rollbackSlot.id } }), 0);
   assert.equal((await submitAppointment(patientIds[1]!, { slotId: rollbackSlot.id })).status, 'BOOKED');
   assert.equal(await db.appointment.count({ where: { slotId: slot.id, status: 'BOOKED' } }), 1);
+  const listing = await listOwnedAppointments(owner, { page: 1, pageSize: 1 });
+  assert.equal(listing.total, 2); assert.equal(listing.items.length, 1);
+  assert.deepEqual(Object.keys(listing.items[0]!.patient), ['firstName']);
+  assert.doesNotMatch(JSON.stringify(listing), /password|token|email|patientId/);
+  await assert.rejects(listOwnedAppointments(randomUUID(), { page: 1, pageSize: 20 }), { status: 404 });
+  const emptyDay = await listOwnedAppointments(owner, { page: 1, pageSize: 20, date: '2000-01-01' }); assert.equal(emptyDay.total, 0);
   const reserved = await db.facilitySlot.findUniqueOrThrow({ where: { id: slot.id } }); assert.ok(reserved.bookedAt);
   await accessOwnedSchedule(owner, { kind: 'put', schedule: { timezone: 'Asia/Kolkata', days: Array.from({ length: 7 }, (_, day) => ({ day, periods: [] })) } });
+  const dateParts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(startsAt);
+  const localDate = ['year', 'month', 'day'].map(name => dateParts.find(part => part.type === name)!.value).join('-');
+  const dated = await listOwnedAppointments(owner, { page: 1, pageSize: 20, date: localDate });
+  assert.ok(dated.items.some(row => row.slot.startsAt.getTime() === startsAt.getTime())); assert.equal(dated.timezone, 'Asia/Kolkata');
   assert.deepEqual(await db.facilitySlot.findUniqueOrThrow({ where: { id: slot.id } }), reserved);
   const past = await db.facilitySlot.create({ data: { facilityId, startsAt: new Date(0), endsAt: new Date(1800000) } });
   await assert.rejects(submitAppointment(patientIds[0]!, { slotId: past.id }), { status: 409 });

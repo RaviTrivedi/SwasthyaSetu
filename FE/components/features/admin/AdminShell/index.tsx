@@ -14,7 +14,7 @@ export default function AdminShell({
   return (
     <>
       <header className={styles.header}>
-        <p className={styles.eyebrow}>SwasthyaSetu Â· Platform workspace</p>
+        <p className={styles.eyebrow}>SwasthyaSetu· Platform workspace</p>
         <h1>Platform Admin</h1>
         <p>Facility oversight and marketplace operations.</p>
       </header>
@@ -33,16 +33,16 @@ const AdminNavigation = memo(function AdminNavigation() {
   const section = useSelectedLayoutSegment();
   const pathname = section ? `/admin/${section}` : '/admin';
   return <nav className={styles.navigation} aria-label="Platform Admin">
-          {adminNavigation.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              scroll={false}
-              aria-current={(pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href + '/'))) ? 'page' : undefined}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>;
+    {adminNavigation.map((item) => (
+      <Link
+        key={item.href}
+        href={item.href}
+        scroll={false}
+        aria-current={(pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href + '/'))) ? 'page' : undefined}
+      >
+        {item.label}
+      </Link>
+    ))}
+  </nav>;
 });
 
